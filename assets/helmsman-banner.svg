@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Helmsman — the harness-native operator system with a built-in routing, privacy and cost layer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050816"/>
+      <stop offset="0.55" stop-color="#0a0e1a"/>
+      <stop offset="1" stop-color="#0d1430"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="txt" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e2e8f0"/>
+      <stop offset="1" stop-color="#a5b4fc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <g id="handle">
+      <rect x="120" y="8" width="16" height="32" rx="8" fill="url(#g)"/>
+      <circle cx="128" cy="10" r="12" fill="url(#g)"/>
+    </g>
+  </defs>
+
+  <rect width="1280" height="320" fill="url(#bg)"/>
+  <circle cx="200" cy="160" r="180" fill="url(#glow)"/>
+
+  <!-- ship's wheel, scaled & positioned (center ~200,160) -->
+  <g transform="translate(120.6,80.6) scale(0.62)">
+    <g stroke="url(#g)" stroke-width="12" stroke-linecap="round">
+      <line x1="56" y1="128" x2="200" y2="128"/>
+      <line x1="128" y1="56" x2="128" y2="200"/>
+      <line x1="77.1" y1="77.1" x2="178.9" y2="178.9"/>
+      <line x1="77.1" y1="178.9" x2="178.9" y2="77.1"/>
+    </g>
+    <circle cx="128" cy="128" r="92" fill="none" stroke="url(#g)" stroke-width="14"/>
+    <circle cx="128" cy="128" r="72" fill="none" stroke="url(#g)" stroke-width="6" opacity="0.7"/>
+    <circle cx="128" cy="128" r="30" fill="#0a0e1a" stroke="url(#g)" stroke-width="5"/>
+    <circle cx="128" cy="128" r="14" fill="url(#g)"/>
+    <use href="#handle"/>
+    <use href="#handle" transform="rotate(45 128 128)"/>
+    <use href="#handle" transform="rotate(90 128 128)"/>
+    <use href="#handle" transform="rotate(135 128 128)"/>
+    <use href="#handle" transform="rotate(180 128 128)"/>
+    <use href="#handle" transform="rotate(225 128 128)"/>
+    <use href="#handle" transform="rotate(270 128 128)"/>
+    <use href="#handle" transform="rotate(315 128 128)"/>
+  </g>
+
+  <!-- wordmark + tagline -->
+  <text x="430" y="172" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="3" fill="url(#txt)">HELMSMAN</text>
+  <rect x="434" y="194" width="316" height="6" rx="3" fill="url(#g)"/>
+  <text x="436" y="238" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="27" font-weight="500" fill="#9fb0c3">Your agents, steered &#8212; every call cheap, private &amp; local-first.</text>
+  <text x="436" y="272" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="400" fill="#5b6b85">The harness-native operator system with a built-in routing, privacy &amp; cost layer.</text>
+</svg>

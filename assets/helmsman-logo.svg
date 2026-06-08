@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Helmsman logo">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <g id="handle">
+      <rect x="120" y="8" width="16" height="32" rx="8" fill="url(#g)"/>
+      <circle cx="128" cy="10" r="12" fill="url(#g)"/>
+    </g>
+  </defs>
+
+  <!-- spokes (4 diameters = 8 spokes) -->
+  <g stroke="url(#g)" stroke-width="12" stroke-linecap="round">
+    <line x1="56"   y1="128"  x2="200"  y2="128"/>
+    <line x1="128"  y1="56"   x2="128"  y2="200"/>
+    <line x1="77.1" y1="77.1" x2="178.9" y2="178.9"/>
+    <line x1="77.1" y1="178.9" x2="178.9" y2="77.1"/>
+  </g>
+
+  <!-- rims -->
+  <circle cx="128" cy="128" r="92" fill="none" stroke="url(#g)" stroke-width="14"/>
+  <circle cx="128" cy="128" r="72" fill="none" stroke="url(#g)" stroke-width="6" opacity="0.7"/>
+
+  <!-- hub -->
+  <circle cx="128" cy="128" r="30" fill="#0a0e1a" stroke="url(#g)" stroke-width="5"/>
+  <circle cx="128" cy="128" r="14" fill="url(#g)"/>
+
+  <!-- handles around the rim -->
+  <use href="#handle"/>
+  <use href="#handle" transform="rotate(45 128 128)"/>
+  <use href="#handle" transform="rotate(90 128 128)"/>
+  <use href="#handle" transform="rotate(135 128 128)"/>
+  <use href="#handle" transform="rotate(180 128 128)"/>
+  <use href="#handle" transform="rotate(225 128 128)"/>
+  <use href="#handle" transform="rotate(270 128 128)"/>
+  <use href="#handle" transform="rotate(315 128 128)"/>
+</svg>

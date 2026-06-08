@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Helmsman — unified installer (macOS / Linux)
-# Builds the NEXUS binary, wires it into ECC, and (best-effort) puts both
+# Builds the NEXUS binary, wires it into the operator core, and (best-effort) puts both
 # `nexus` and `helmsman` on your PATH. Re-runnable / idempotent.
 set -eu
 
@@ -20,7 +20,7 @@ say "-> building NEXUS (go build)..."
 ( cd "$ROOT/nexus" && go build -o bin/nexus ./cmd/nexus )
 say "+ built nexus/bin/nexus"
 
-# ── wire NEXUS's MCP server into ECC ───────────────────────────────────
+# ── wire NEXUS's MCP server into the operator core ───────────────────────────────────
 node "$ROOT/integration/bin/helmsman.js" wire-mcp
 
 # ── best-effort: put binaries on PATH ──────────────────────────────────

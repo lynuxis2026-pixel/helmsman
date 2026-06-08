@@ -2,20 +2,21 @@
 'use strict';
 
 /*
- * helmsman — the unified bridge CLI for the Helmsman monorepo (ECC + NEXUS).
+ * helmsman — the unified bridge CLI for the Helmsman monorepo.
  *
- *   ECC   = the harness-native agent operator system (skills, agents, rules,
- *           commands, hooks, MCP configs).  Node.js / Python / Rust.
- *   NEXUS = a local proxy that routes Claude Code to the cheapest capable
- *           model, redacts secrets & PII before they leave the machine,
- *           benchmarks every provider on your own traffic and learns routing.
- *           Go.
+ *   operator/ = the harness-native agent operator system (skills, agents,
+ *               rules, commands, hooks, MCP configs).  Node.js / Python / Rust.
+ *   nexus/    = NEXUS, a local proxy that routes Claude Code to the cheapest
+ *               capable model, redacts secrets & PII before they leave the
+ *               machine, benchmarks every provider on your own traffic and
+ *               learns routing.  Go.
  *
- * This bridge makes NEXUS the routing / privacy / cost layer underneath ECC:
- * one entry point to run NEXUS, a combined `doctor`, MCP wiring and the env
- * wiring that points Claude Code (and every ECC-driven agent) through NEXUS.
+ * This bridge makes NEXUS the routing / privacy / cost layer underneath the
+ * operator core: one entry point to run NEXUS, a combined `doctor`, MCP wiring
+ * and the env wiring that points Claude Code (and every operator-driven agent)
+ * through NEXUS.
  *
- * CommonJS, Node >= 18, zero runtime dependencies — matches ECC conventions.
+ * CommonJS, Node >= 18, zero runtime dependencies.
  */
 
 const { spawnSync } = require('node:child_process');
@@ -23,7 +24,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..', '..'); // monorepo root
-const ECC_DIR = path.join(ROOT, 'ecc');
+const OPERATOR_DIR = path.join(ROOT, 'operator');
 const NEXUS_DIR = path.join(ROOT, 'nexus');
 const IS_WIN = process.platform === 'win32';
 const EXE = IS_WIN ? '.exe' : '';
@@ -77,53 +78,53 @@ function runNexus(args) {
   return spawnSync(bin, args, { stdio: 'inherit' }).status ?? 1;
 }
 
-function runEccCli(args) {
-  const cli = path.join(ECC_DIR, 'scripts', 'ecc.js');
+function runOperatorCli(args) {
+  const cli = path.join(OPERATOR_DIR, 'scripts', 'ecc.js');
   if (!fs.existsSync(cli)) {
-    console.error('x ECC CLI not found at ' + path.relative(ROOT, cli));
+    console.error('x operator CLI not found at ' + path.relative(ROOT, cli));
     return 1;
   }
   return spawnSync(process.execPath, [cli, ...args], {
     stdio: 'inherit',
-    cwd: ECC_DIR,
+    cwd: OPERATOR_DIR,
   }).status ?? 1;
 }
 
-function runEccScript(script, args) {
-  const p = path.join(ECC_DIR, 'scripts', script);
+function runOperatorScript(script, args) {
+  const p = path.join(OPERATOR_DIR, 'scripts', script);
   if (!fs.existsSync(p)) {
-    console.error('x ECC script not found: ' + path.relative(ROOT, p));
+    console.error('x operator script not found: ' + path.relative(ROOT, p));
     return 1;
   }
   return spawnSync(process.execPath, [p, ...(args || [])], {
     stdio: 'inherit',
-    cwd: ECC_DIR,
+    cwd: OPERATOR_DIR,
   }).status ?? 1;
 }
 
 // ---- MCP wiring ---------------------------------------------------------
-// Adds NEXUS's stdio savings/usage MCP server to ECC's .mcp.json so any
-// ECC-driven harness can ask "how much have I saved today?".
+// Adds NEXUS's stdio savings/usage MCP server to the operator core's .mcp.json
+// so any operator-driven harness can ask "how much have I saved today?".
 function wireMcp() {
-  const mcpFile = path.join(ECC_DIR, '.mcp.json');
+  const mcpFile = path.join(OPERATOR_DIR, '.mcp.json');
   let json;
   try {
     json = JSON.parse(fs.readFileSync(mcpFile, 'utf8'));
   } catch (e) {
-    console.error('x cannot read ecc/.mcp.json: ' + e.message);
+    console.error('x cannot read operator/.mcp.json: ' + e.message);
     return 1;
   }
   json.mcpServers = json.mcpServers || {};
   json.mcpServers.nexus = { command: 'nexus', args: ['mcp'] };
   fs.writeFileSync(mcpFile, JSON.stringify(json, null, 2) + '\n');
-  console.error('+ Wired NEXUS savings MCP server into ecc/.mcp.json (server "nexus").');
+  console.error('+ Wired NEXUS savings MCP server into operator/.mcp.json (server "nexus").');
   return 0;
 }
 
 // ---- env wiring ---------------------------------------------------------
 function printEnv(portArg) {
   const port = Number(portArg) || 3000;
-  console.log('# Route Claude Code (and every ECC-driven agent) through NEXUS.');
+  console.log('# Route Claude Code (and every operator-driven agent) through NEXUS.');
   console.log('# bash / zsh:');
   console.log('  export ANTHROPIC_BASE_URL=http://localhost:' + port);
   console.log('  export ANTHROPIC_API_KEY=nexus-local');
@@ -137,23 +138,23 @@ function doctor() {
   let ok = 0;
   console.log('\n=== NEXUS doctor =======================================');
   ok |= runNexus(['doctor']);
-  console.log('\n=== ECC doctor =========================================');
-  // ECC ships scripts/doctor.js; fall back to the ecc CLI doctor if absent.
-  if (fs.existsSync(path.join(ECC_DIR, 'scripts', 'doctor.js'))) {
-    ok |= runEccScript('doctor.js', []);
+  console.log('\n=== Operator doctor ====================================');
+  // The operator core ships scripts/doctor.js; fall back to its CLI doctor.
+  if (fs.existsSync(path.join(OPERATOR_DIR, 'scripts', 'doctor.js'))) {
+    ok |= runOperatorScript('doctor.js', []);
   } else {
-    ok |= runEccCli(['doctor']);
+    ok |= runOperatorCli(['doctor']);
   }
   return ok ? 1 : 0;
 }
 
 function help() {
-  console.log(`Helmsman — unified bridge (ECC + NEXUS)
+  console.log(`Helmsman — unified bridge
 
-  ECC   = agent operator system (skills, agents, rules, commands, MCP)
-  NEXUS = local proxy: routes Claude Code to the cheapest capable model,
-          redacts secrets/PII before they leave your machine, benchmarks &
-          learns routing. NEXUS is ECC's routing / privacy / cost layer.
+  operator = agent operator system (skills, agents, rules, commands, MCP)
+  NEXUS    = local proxy: routes Claude Code to the cheapest capable model,
+             redacts secrets/PII before they leave your machine, benchmarks &
+             learns routing. NEXUS is the operator's routing / privacy / cost layer.
 
 USAGE
   helmsman <command> [args]
@@ -164,21 +165,21 @@ EVERYDAY
   status                   Provider health
   cost                     Cost / savings breakdown
   top                      Live terminal dashboard
-  doctor                   Run BOTH the NEXUS doctor and the ECC doctor
+  doctor                   Run BOTH the NEXUS doctor and the operator doctor
 
 SETUP / WIRING
   build                    Build the NEXUS binary from ./nexus (go build)
   add <provider> <key>     Add an LLM provider to NEXUS
-  wire-mcp                 Add NEXUS's savings MCP server to ecc/.mcp.json
+  wire-mcp                 Add NEXUS's savings MCP server to operator/.mcp.json
   env [port]               Print env lines to route Claude Code through NEXUS
-  install <stack...>       Run the ECC installer for a stack/harness, then wire MCP
+  install <stack...>       Run the operator installer for a stack/harness, then wire MCP
 
 PASS-THROUGH
-  nexus <args...>          Run the NEXUS binary directly (any nexus subcommand)
-  ecc   <args...>          Run the ECC CLI directly (any ecc subcommand)
+  nexus    <args...>       Run the NEXUS binary directly (any nexus subcommand)
+  operator <args...>       Run the operator CLI directly (any operator subcommand)
 
 DOCS
-  ./README.md  ·  ECC: ./ecc/README.md  ·  NEXUS: ./nexus/README.md`);
+  ./README.md  ·  Operator: ./operator/README.md  ·  NEXUS: ./nexus/README.md`);
 }
 
 // ---- dispatch -----------------------------------------------------------
@@ -215,7 +216,7 @@ function main() {
     case 'doctor':
       return doctor();
     case 'install': {
-      const s = runEccCli(rest);
+      const s = runOperatorCli(rest);
       wireMcp();
       return s;
     }
@@ -223,8 +224,8 @@ function main() {
     // pass-through
     case 'nexus':
       return runNexus(rest);
-    case 'ecc':
-      return runEccCli(rest);
+    case 'operator':
+      return runOperatorCli(rest);
 
     default:
       console.error('Unknown command: ' + cmd + '\n');

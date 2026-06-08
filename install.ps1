@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Helmsman — unified installer (Windows / PowerShell)
-# Builds the NEXUS binary, wires it into ECC, and (best-effort) links
+# Builds the NEXUS binary, wires it into the operator core, and (best-effort) links
 # `helmsman` onto your PATH. Re-runnable / idempotent.
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -19,7 +19,7 @@ Push-Location "$Root\nexus"
 try { go build -o "bin\nexus.exe" ".\cmd\nexus" } finally { Pop-Location }
 Write-Host "+ built nexus\bin\nexus.exe"
 
-# ── wire NEXUS's MCP server into ECC ───────────────────────────────────
+# ── wire NEXUS's MCP server into the operator core ───────────────────────────────────
 node "$Root\integration\bin\helmsman.js" wire-mcp
 
 # ── best-effort: link helmsman onto PATH ──────────────────────────────
