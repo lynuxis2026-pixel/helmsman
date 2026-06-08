@@ -1,4 +1,4 @@
-# Changelog — ECC × NEXUS
+# Changelog — Helmsman
 
 This is the changelog for the **combined monorepo**. Each project keeps its own
 detailed history: [`ecc/CHANGELOG.md`](ecc/CHANGELOG.md) and
@@ -19,9 +19,9 @@ feature sets.
   all 30+ providers.
 
 **Added (integration layer):**
-- `integration/bin/ecc-nexus.js` — unified bridge CLI spanning both projects
+- `integration/bin/helmsman.js` — unified bridge CLI spanning both projects
   (everyday NEXUS commands, combined `doctor`, MCP + env wiring, pass-throughs).
-- Root `package.json` exposing the `ecc-nexus` bin and `npm run setup` / `doctor`
+- Root `package.json` exposing the `helmsman` bin and `npm run setup` / `doctor`
   / `start` / `code` scripts.
 - `install.sh` + `install.ps1` — unified installers (build NEXUS, wire ECC).
 - `README.md`, `integration/README.md`, `LICENSES.md`, `.env.example`,

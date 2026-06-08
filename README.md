@@ -1,8 +1,8 @@
-# ECC × NEXUS
+# Helmsman
 
 **The harness-native agent operator system — with a built-in local routing, privacy & cost layer.**
 
-This is a **monorepo that combines two projects in full**, wired together:
+**Helmsman** is a **monorepo that combines two projects in full**, wired together — **ECC** (the operator system) and **NEXUS** (the local routing/privacy/cost proxy):
 
 | Layer | Project | What it is | Stack |
 |-------|---------|------------|-------|
@@ -11,7 +11,7 @@ This is a **monorepo that combines two projects in full**, wired together:
 
 ECC decides *what* work the agent does. NEXUS decides *how* every model call is routed — cheaply, privately, and measurably. Together: a complete operator system whose every LLM call is local-first, redacted, cost-optimized and self-learning.
 
-> **Nothing was dropped.** Both upstream codebases are vendored here in their entirety — every skill, agent, rule, command, provider and function. The only additions are the integration layer (this README, the `ecc-nexus` bridge CLI, the unified installer and the MCP/env wiring). See [Provenance](#provenance).
+> **Nothing was dropped.** Both upstream codebases are vendored here in their entirety — every skill, agent, rule, command, provider and function. The only additions are the integration layer (this README, the `helmsman` bridge CLI, the unified installer and the MCP/env wiring). See [Provenance](#provenance).
 
 ---
 
@@ -19,24 +19,24 @@ ECC decides *what* work the agent does. NEXUS decides *how* every model call is 
 
 ```bash
 # 1) Build NEXUS and wire it into ECC's MCP config
-npm run setup            # = ecc-nexus build  +  ecc-nexus wire-mcp
+npm run setup            # = helmsman build  +  helmsman wire-mcp
                          #   (requires Go >= 1.22 and Node >= 18)
 
 # 2) Launch Claude Code routed through NEXUS, in one command
-node integration/bin/ecc-nexus.js code
+node integration/bin/helmsman.js code
 #   ↑ starts the NEXUS proxy (:3000) + dashboard (:2222) if needed,
 #     then launches Claude Code wired through it.
 
 # 3) Add the providers you want NEXUS to route to
-node integration/bin/ecc-nexus.js add groq      gsk_...
-node integration/bin/ecc-nexus.js add deepseek  sk-...
-node integration/bin/ecc-nexus.js add anthropic sk-ant-...   # for premium calls
+node integration/bin/helmsman.js add groq      gsk_...
+node integration/bin/helmsman.js add deepseek  sk-...
+node integration/bin/helmsman.js add anthropic sk-ant-...   # for premium calls
 ```
 
-Install globally so `ecc-nexus` is on your PATH:
+Install globally so `helmsman` is on your PATH:
 
 ```bash
-npm link          # then just:  ecc-nexus code
+npm link          # then just:  helmsman code
 # or run the unified installer:
 ./install.sh      # macOS/Linux
 ./install.ps1     # Windows (PowerShell)
@@ -44,22 +44,22 @@ npm link          # then just:  ecc-nexus code
 
 ---
 
-## The `ecc-nexus` bridge
+## The `helmsman` bridge
 
-One entry point spanning both projects. Run `ecc-nexus help` for the full list.
+One entry point spanning both projects. Run `helmsman help` for the full list.
 
 | Command | Does |
 |---------|------|
-| `ecc-nexus code [-- claude args]` | Start NEXUS (if needed) + launch Claude Code through it |
-| `ecc-nexus start` | Start the NEXUS proxy + dashboard |
-| `ecc-nexus doctor` | Run **both** the NEXUS doctor and the ECC doctor |
-| `ecc-nexus cost` / `status` / `top` | NEXUS savings, provider health, live dashboard |
-| `ecc-nexus add <provider> <key>` | Register an LLM provider with NEXUS |
-| `ecc-nexus wire-mcp` | Add NEXUS's savings MCP server to `ecc/.mcp.json` |
-| `ecc-nexus env [port]` | Print the env lines to route Claude Code through NEXUS |
-| `ecc-nexus install <stack...>` | Run the ECC installer for a stack/harness, then wire MCP |
-| `ecc-nexus nexus <args...>` | Pass-through to the raw NEXUS binary |
-| `ecc-nexus ecc <args...>` | Pass-through to the raw ECC CLI |
+| `helmsman code [-- claude args]` | Start NEXUS (if needed) + launch Claude Code through it |
+| `helmsman start` | Start the NEXUS proxy + dashboard |
+| `helmsman doctor` | Run **both** the NEXUS doctor and the ECC doctor |
+| `helmsman cost` / `status` / `top` | NEXUS savings, provider health, live dashboard |
+| `helmsman add <provider> <key>` | Register an LLM provider with NEXUS |
+| `helmsman wire-mcp` | Add NEXUS's savings MCP server to `ecc/.mcp.json` |
+| `helmsman env [port]` | Print the env lines to route Claude Code through NEXUS |
+| `helmsman install <stack...>` | Run the ECC installer for a stack/harness, then wire MCP |
+| `helmsman nexus <args...>` | Pass-through to the raw NEXUS binary |
+| `helmsman ecc <args...>` | Pass-through to the raw ECC CLI |
 
 Every original command of **both** tools remains available — directly (`ecc`, `nexus`) and via the pass-throughs above.
 
@@ -67,9 +67,9 @@ Every original command of **both** tools remains available — directly (`ecc`, 
 
 ## How they're wired together
 
-1. **Routing** — `ANTHROPIC_BASE_URL=http://localhost:3000` points Claude Code (the engine ECC drives) at NEXUS. Run `ecc-nexus env` to print the exact lines. NEXUS then routes, caches, redacts and cost-optimizes every call ECC's agents make.
+1. **Routing** — `ANTHROPIC_BASE_URL=http://localhost:3000` points Claude Code (the engine ECC drives) at NEXUS. Run `helmsman env` to print the exact lines. NEXUS then routes, caches, redacts and cost-optimizes every call ECC's agents make.
 2. **MCP** — NEXUS ships a stdio MCP server (`nexus mcp`) exposing live usage/savings. It is registered in [`ecc/.mcp.json`](ecc/.mcp.json) as the **`nexus`** server, so any ECC-driven harness can ask *"how much have I saved today?"*.
-3. **Unified ops** — `ecc-nexus doctor` runs both diagnostic suites; the unified installer sets up both stacks; `.env.example` carries both projects' variables.
+3. **Unified ops** — `helmsman doctor` runs both diagnostic suites; the unified installer sets up both stacks; `.env.example` carries both projects' variables.
 
 ```
         ┌─────────────────────────────────────────────┐
@@ -93,8 +93,8 @@ Every original command of **both** tools remains available — directly (`ecc`, 
 ├── ecc/            ← full ECC project (affaan-m/ECC), unchanged in function
 ├── nexus/          ← full NEXUS project (lynuxis2026-pixel/nexus-proxy), unchanged in function
 ├── integration/    ← the glue: bridge CLI + integration docs
-│   └── bin/ecc-nexus.js
-├── package.json    ← root manifest, exposes the `ecc-nexus` bin + npm scripts
+│   └── bin/helmsman.js
+├── package.json    ← root manifest, exposes the `helmsman` bin + npm scripts
 ├── install.sh / install.ps1   ← unified installers (build NEXUS, wire ECC)
 ├── .env.example    ← combined environment template
 ├── CHANGELOG.md    ← combined changelog

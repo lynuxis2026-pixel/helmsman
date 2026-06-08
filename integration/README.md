@@ -7,7 +7,7 @@ under `ecc/` and `nexus/` is the upstream projects, vendored in full.
 
 | Path | Purpose |
 |------|---------|
-| `bin/ecc-nexus.js` | The unified bridge CLI. CommonJS, Node ≥ 18, zero deps (matches ECC's conventions). Locates/builds the NEXUS binary, forwards everyday commands to it, runs a combined `doctor`, and performs MCP + env wiring. |
+| `bin/helmsman.js` | The unified bridge CLI. CommonJS, Node ≥ 18, zero deps (matches ECC's conventions). Locates/builds the NEXUS binary, forwards everyday commands to it, runs a combined `doctor`, and performs MCP + env wiring. |
 
 The bridge is intentionally thin: it **orchestrates** the two projects rather
 than reimplementing either, which is what keeps "every function of both" intact.
@@ -17,21 +17,21 @@ than reimplementing either, which is what keeps "every function of both" intact.
 1. **Routing (env).** NEXUS is an Anthropic-compatible proxy on `:3000`. Setting
    `ANTHROPIC_BASE_URL=http://localhost:3000` + `ANTHROPIC_API_KEY=nexus-local`
    makes Claude Code — the engine ECC drives — send every request through NEXUS.
-   `ecc-nexus env` prints the exact bash/PowerShell lines.
+   `helmsman env` prints the exact bash/PowerShell lines.
 
 2. **MCP.** NEXUS exposes a stdio JSON-RPC MCP server via `nexus mcp` that answers
-   usage/savings queries. `ecc-nexus wire-mcp` (also run by `npm run setup`) adds it
+   usage/savings queries. `helmsman wire-mcp` (also run by `npm run setup`) adds it
    to `ecc/.mcp.json` as the `nexus` server. It ships pre-wired in this repo.
 
-3. **Unified ops.** `ecc-nexus doctor` runs `nexus doctor` **and** ECC's
+3. **Unified ops.** `helmsman doctor` runs `nexus doctor` **and** ECC's
    `scripts/doctor.js`; `install.sh` / `install.ps1` build NEXUS and wire ECC in one
    pass; the root `.env.example` carries both projects' variables.
 
 ## Binary resolution
 
-`ecc-nexus` finds the NEXUS binary in this order:
+`helmsman` finds the NEXUS binary in this order:
 
-1. `nexus/bin/nexus` (the vendored build produced by `ecc-nexus build`)
+1. `nexus/bin/nexus` (the vendored build produced by `helmsman build`)
 2. `nexus` on your `PATH` (e.g. after the unified installer)
 
 If neither exists it builds from `./nexus` with `go build` automatically.

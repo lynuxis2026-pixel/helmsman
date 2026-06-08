@@ -1,20 +1,20 @@
 {
-  "name": "ecc-nexus",
+  "name": "helmsman",
   "version": "1.0.0",
   "private": true,
-  "description": "ECC x NEXUS — the harness-native agent operator system (ECC) with a built-in local routing, privacy & cost layer (NEXUS). A monorepo combining both projects in full, wired together.",
+  "description": "Helmsman — the harness-native agent operator system (ECC) with a built-in local routing, privacy & cost layer (NEXUS). A monorepo combining both projects in full, wired together.",
   "bin": {
-    "ecc-nexus": "integration/bin/ecc-nexus.js"
+    "helmsman": "integration/bin/helmsman.js"
   },
   "scripts": {
-    "setup": "node integration/bin/ecc-nexus.js build && node integration/bin/ecc-nexus.js wire-mcp",
-    "build:nexus": "node integration/bin/ecc-nexus.js build",
-    "wire-mcp": "node integration/bin/ecc-nexus.js wire-mcp",
-    "doctor": "node integration/bin/ecc-nexus.js doctor",
-    "start": "node integration/bin/ecc-nexus.js start",
-    "code": "node integration/bin/ecc-nexus.js code",
+    "setup": "node integration/bin/helmsman.js build && node integration/bin/helmsman.js wire-mcp",
+    "build:nexus": "node integration/bin/helmsman.js build",
+    "wire-mcp": "node integration/bin/helmsman.js wire-mcp",
+    "doctor": "node integration/bin/helmsman.js doctor",
+    "start": "node integration/bin/helmsman.js start",
+    "code": "node integration/bin/helmsman.js code",
     "ecc": "node ecc/scripts/ecc.js",
-    "nexus": "node integration/bin/ecc-nexus.js nexus",
+    "nexus": "node integration/bin/helmsman.js nexus",
     "test:ecc": "npm --prefix ecc test",
     "test:nexus": "node -e \"process.exit(require('node:child_process').spawnSync('go',['test','./...'],{cwd:'nexus',stdio:'inherit'}).status||0)\""
   },
@@ -24,6 +24,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/affaan-m/ECC + https://github.com/lynuxis2026-pixel/nexus-proxy"
+    "url": "https://github.com/lynuxis2026-pixel/helmsman"
   }
 }

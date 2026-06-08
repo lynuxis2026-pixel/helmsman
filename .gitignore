@@ -1,4 +1,4 @@
-# ── ECC x NEXUS monorepo — root ignores ───────────────────────────────
+# ── Helmsman monorepo — root ignores ──────────────────────────────────
 # Each subproject keeps its own .gitignore (ecc/.gitignore, nexus/.gitignore);
 # this file covers root-level and cross-cutting artifacts.
 
@@ -13,9 +13,8 @@ npm-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Go / NEXUS build outputs
+# Go / NEXUS build outputs (scoped — do NOT ignore integration/bin)
 nexus/bin/
-bin/
 *.exe
 *.test
 *.out

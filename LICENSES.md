@@ -17,7 +17,7 @@ compatible.
   under `nexus/`.
 - The **MIT** terms in [`ecc/LICENSE`](ecc/LICENSE) continue to apply to
   everything under `ecc/`.
-- The integration layer added by this combination (the `ecc-nexus` bridge CLI,
+- The integration layer added by this combination (the `helmsman` bridge CLI,
   the unified installers, the combined docs and the MCP/env wiring) is offered
   under the **MIT** license, chosen for compatibility with both.
 - MIT and Apache-2.0 are compatible: you may use, modify and redistribute the
