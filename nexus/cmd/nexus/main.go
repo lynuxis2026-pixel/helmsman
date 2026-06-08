@@ -32,8 +32,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "nexus",
-	Short: "Smart proxy + dashboard for Claude Code",
+	Use:   "helmsman",
+	Short: "Helmsman — agent operator system + local routing/privacy/cost proxy",
 	Long: `
 ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗
 ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝
@@ -104,8 +104,8 @@ var modelsCmd = &cobra.Command{
 // doctor command
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "Diagnose setup, test every provider, and suggest fixes",
-	RunE:  runDoctor,
+	Short: "Diagnose setup (NEXUS + operator core), test every provider, suggest fixes",
+	RunE:  runHelmsmanDoctor,
 }
 
 // top command — live terminal dashboard (htop for your LLM traffic)
@@ -120,7 +120,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("nexus %s (built %s)\n", Version, BuildTime)
+		fmt.Printf("helmsman %s (built %s)\n", Version, BuildTime)
 		l := license.Active()
 		fmt.Printf("license: %s (%s)\n", l.Notice, l.Edition)
 	},

@@ -19,6 +19,11 @@ nexus/bin/
 *.test
 *.out
 
+# Single-binary build: the operator core is staged here at build time, baked
+# into the binary via go:embed, then cleaned away. Only the placeholder is kept.
+nexus/internal/operatorfs/data/*
+!nexus/internal/operatorfs/data/.gitkeep
+
 # NEXUS local state (SQLite DB, logs)
 *.db
 *.db-shm

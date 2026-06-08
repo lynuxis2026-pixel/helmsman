@@ -19,7 +19,35 @@ The operator layer decides *what* work the agent does. The router layer decides 
 
 ---
 
-## Quickstart
+## Single binary (self-contained)
+
+Build **one executable** that contains everything — NEXUS natively **and** the
+entire operator core baked in (extracted to `~/.helmsman` on first use):
+
+```bash
+npm run build:binary          # = node integration/build-helmsman.js   (needs Go ≥ 1.22)
+# → nexus/bin/helmsman(.exe)  — a single ~60 MB file you can ship on its own
+```
+
+Then run it directly:
+
+```bash
+helmsman setup                # extract the operator core + wire the NEXUS MCP server
+helmsman code                 # start NEXUS + launch Claude Code through it
+helmsman operator <args...>   # run the embedded operator core (skills / agents / install)
+helmsman doctor               # diagnose NEXUS + operator core
+helmsman start | cost | top | bench | add <provider> <key> | mcp | env
+```
+
+> **One file — but not zero-dependency.** The **NEXUS half is fully native** (no
+> runtime deps). The **operator half is Node/Python code** baked into the binary,
+> so `helmsman operator` / `doctor` still need **Node.js ≥ 18** (and **Python 3**
+> for the dashboard) on the machine. Making those native too would mean rewriting
+> them — which would drop functionality — so they're embedded and run as-is.
+
+---
+
+## Quickstart (from source)
 
 ```bash
 # 1) Build NEXUS and wire it into the operator core's MCP config

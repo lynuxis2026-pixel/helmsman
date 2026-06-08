@@ -9,6 +9,7 @@
   "scripts": {
     "setup": "node integration/bin/helmsman.js build && node integration/bin/helmsman.js wire-mcp",
     "build:nexus": "node integration/bin/helmsman.js build",
+    "build:binary": "node integration/build-helmsman.js",
     "wire-mcp": "node integration/bin/helmsman.js wire-mcp",
     "doctor": "node integration/bin/helmsman.js doctor",
     "start": "node integration/bin/helmsman.js start",
