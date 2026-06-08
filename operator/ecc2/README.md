@@ -1,8 +1,8 @@
-# ECC 2.0 Alpha
+# Helmsman — Rust control-plane (alpha)
 
-`ecc2/` is the current Rust-based ECC 2.0 control-plane scaffold.
+`ecc2/` is Helmsman's Rust-based control-plane scaffold.
 
-It is usable as an alpha for local experimentation, but it is **not** the finished ECC 2.0 product yet.
+It is usable as an alpha for local experimentation, but it is **not** a finished product yet.
 
 ## What Exists Today
 
@@ -16,7 +16,7 @@ It is usable as an alpha for local experimentation, but it is **not** the finish
 
 ## What This Is For
 
-ECC 2.0 is the layer above individual harness installs.
+The control-plane is the layer above individual harness installs.
 
 The goal is:
 
@@ -34,14 +34,12 @@ This directory should be treated as:
 - valid to build and test locally
 - not yet a public GA release
 
-Open issue clusters for the broader roadmap live in the main repo issue tracker under the `ecc-2.0` label.
-
 ## Run It
 
 From the repo root:
 
 ```bash
-cd ecc2
+cd operator/ecc2
 cargo run
 ```
 
@@ -73,13 +71,13 @@ cargo run -- daemon
 ## Validate
 
 ```bash
-cd ecc2
+cd operator/ecc2
 cargo test
 ```
 
 ## What Is Still Missing
 
-The alpha is missing the higher-level operator surface that defines ECC 2.0:
+The alpha is missing the higher-level operator surface:
 
 - richer multi-agent orchestration
 - explicit agent-to-agent delegation and summaries
@@ -94,6 +92,6 @@ Do not market `ecc2/` as done just because the scaffold builds.
 
 The right framing is:
 
-- ECC 2.0 alpha exists
+- the alpha exists
 - it is usable for internal/operator testing
 - it is not the complete release yet
