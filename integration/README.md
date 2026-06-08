@@ -1,0 +1,52 @@
+# Integration layer
+
+This directory is the **only net-new code** in the monorepo. Everything else
+under `ecc/` and `nexus/` is the upstream projects, vendored in full.
+
+## What's here
+
+| Path | Purpose |
+|------|---------|
+| `bin/ecc-nexus.js` | The unified bridge CLI. CommonJS, Node ≥ 18, zero deps (matches ECC's conventions). Locates/builds the NEXUS binary, forwards everyday commands to it, runs a combined `doctor`, and performs MCP + env wiring. |
+
+The bridge is intentionally thin: it **orchestrates** the two projects rather
+than reimplementing either, which is what keeps "every function of both" intact.
+
+## The three wiring points
+
+1. **Routing (env).** NEXUS is an Anthropic-compatible proxy on `:3000`. Setting
+   `ANTHROPIC_BASE_URL=http://localhost:3000` + `ANTHROPIC_API_KEY=nexus-local`
+   makes Claude Code — the engine ECC drives — send every request through NEXUS.
+   `ecc-nexus env` prints the exact bash/PowerShell lines.
+
+2. **MCP.** NEXUS exposes a stdio JSON-RPC MCP server via `nexus mcp` that answers
+   usage/savings queries. `ecc-nexus wire-mcp` (also run by `npm run setup`) adds it
+   to `ecc/.mcp.json` as the `nexus` server. It ships pre-wired in this repo.
+
+3. **Unified ops.** `ecc-nexus doctor` runs `nexus doctor` **and** ECC's
+   `scripts/doctor.js`; `install.sh` / `install.ps1` build NEXUS and wire ECC in one
+   pass; the root `.env.example` carries both projects' variables.
+
+## Binary resolution
+
+`ecc-nexus` finds the NEXUS binary in this order:
+
+1. `nexus/bin/nexus` (the vendored build produced by `ecc-nexus build`)
+2. `nexus` on your `PATH` (e.g. after the unified installer)
+
+If neither exists it builds from `./nexus` with `go build` automatically.
+
+## Why a bridge instead of a rewrite
+
+ECC is a Node/Python/Rust operator system; NEXUS is a Go networking daemon.
+Rewriting either into the other's stack would inevitably drop functions — the one
+thing this combination must not do. A thin orchestration layer preserves 100% of
+both feature sets while still making them act as one product.
+
+## Provenance
+
+- **ECC** — https://github.com/affaan-m/ECC @ `90dfd9505dc860714cf3cc8216ad7bbb96d93365` (v2.0.0-rc.1, MIT)
+- **NEXUS** — https://github.com/lynuxis2026-pixel/nexus-proxy @ `e5332ff71eb6670409301817eba13c26b8d1259a` (Apache-2.0)
+
+Nested `.git` directories were removed during vendoring. The only upstream file
+changed is `ecc/.mcp.json` (one added server entry).

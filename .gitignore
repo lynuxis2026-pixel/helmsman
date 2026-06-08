@@ -1,0 +1,46 @@
+# ── ECC x NEXUS monorepo — root ignores ───────────────────────────────
+# Each subproject keeps its own .gitignore (ecc/.gitignore, nexus/.gitignore);
+# this file covers root-level and cross-cutting artifacts.
+
+# Secrets / local env
+.env
+.env.local
+*.local
+
+# Node (ecc/ + integration/)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Go / NEXUS build outputs
+nexus/bin/
+bin/
+*.exe
+*.test
+*.out
+
+# NEXUS local state (SQLite DB, logs)
+*.db
+*.db-shm
+*.db-wal
+.nexus/
+
+# Web dashboard (nexus/web)
+nexus/web/dist/
+nexus/web/node_modules/
+
+# Python (ecc dashboard)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Rust (ecc/ecc2)
+ecc/ecc2/target/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
