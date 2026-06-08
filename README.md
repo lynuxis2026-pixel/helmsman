@@ -6,6 +6,10 @@
 
 <p align="center"><strong>The harness-native agent operator system — with a built-in local routing, privacy &amp; cost layer.</strong></p>
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+</p>
+
 Helmsman is a complete operator system for agentic coding, in one repo with two layers:
 
 | Layer | What it is | Stack |
@@ -147,7 +151,7 @@ For each project's own deep docs, see [`operator/README.md`](operator/README.md)
 
 ## Credits & licenses
 
-Helmsman is built on two open-source projects, kept here in full with their licenses and copyright notices intact (as MIT and Apache-2.0 require). Required attribution:
+**Helmsman is released under the [MIT License](LICENSE).** It builds on two open-source projects, kept here in full with their own licenses and copyright notices intact (operator core = MIT; NEXUS = Apache-2.0):
 
 | Project | Source | Commit | Version | License |
 |---------|--------|--------|---------|---------|
