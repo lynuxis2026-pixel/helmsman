@@ -24,6 +24,9 @@ nexus/bin/
 nexus/internal/operatorfs/data/*
 !nexus/internal/operatorfs/data/.gitkeep
 
+# Release artifacts (cross-compiled binaries from integration/build-release.js)
+/dist/
+
 # NEXUS local state (SQLite DB, logs)
 *.db
 *.db-shm

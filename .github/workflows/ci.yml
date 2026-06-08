@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Compile check for the Go half (hollow embed is fine here — fast).
+      - name: go build
+        run: cd nexus && go build ./...
+
+      - name: go vet
+        run: cd nexus && go vet ./...
+
+      # Syntax-check the integration glue.
+      - name: check bridge scripts
+        run: |
+          node --check integration/bin/helmsman.js
+          node --check integration/build-helmsman.js
+          node --check integration/build-release.js

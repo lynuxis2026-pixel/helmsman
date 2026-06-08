@@ -23,6 +23,32 @@ The operator layer decides *what* work the agent does. The router layer decides 
 
 ---
 
+## Download
+
+Grab a prebuilt, self-contained binary from the
+[**Releases**](https://github.com/lynuxis2026-pixel/helmsman/releases) page — one
+file, no build step:
+
+| Platform | File |
+|----------|------|
+| Linux · x86-64 | `helmsman-linux-amd64` |
+| Linux · arm64 | `helmsman-linux-arm64` |
+| macOS · Intel | `helmsman-darwin-amd64` |
+| macOS · Apple Silicon | `helmsman-darwin-arm64` |
+| Windows · x86-64 | `helmsman-windows-amd64.exe` |
+
+```bash
+# macOS / Linux
+chmod +x ./helmsman-*        # make it executable
+./helmsman-* setup           # extract the operator core + wire MCP
+./helmsman-* code            # Claude Code, routed through Helmsman
+```
+
+> Self-contained, but the operator half still needs **Node.js ≥ 18** (and
+> **Python 3** for the dashboard) at runtime — see the note below.
+
+---
+
 ## Single binary (self-contained)
 
 Build **one executable** that contains everything — NEXUS natively **and** the
