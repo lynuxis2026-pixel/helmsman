@@ -124,7 +124,9 @@ You are working inside the "${dn.name}" dungeon. Overall goal: ${dn.goal}
 Guardrails: budget cap $${dn.guardrails?.budgetCapUSD ?? 500}, min margin ${dn.guardrails?.minMarginPct ?? 30}%, max $${dn.guardrails?.maxPerItemUSD ?? 50}/item. PAPER MODE — never spend real money; propose simulated actions only.
 ${prev ? `\nResult from the previous stage:\n${prev}\n` : ''}
 Your task: ${stage.instruction}
-Be concrete and brief. End with a one-line "HANDOFF:" summarising what you pass to the next agent.`;
+Be concrete and brief.
+If this step involves any paper money — buying (spend) or selling (revenue) — end with ONE machine-readable line exactly like: LEDGER: spend=<usd> revenue=<usd>  (use 0 where not applicable; numbers only).
+Then end with a one-line "HANDOFF:" summarising what you pass to the next agent.`;
 
     const r = await claudeAgent(prompt);
     if (ctrl.killed) break;
@@ -136,6 +138,14 @@ Be concrete and brief. End with a one-line "HANDOFF:" summarising what you pass 
       return;
     }
     prev = r.text;
+    const lm = r.text.match(/LEDGER:\s*spend\s*=\s*\$?\s*([0-9]+(?:\.[0-9]+)?)\D+revenue\s*=\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/i);
+    if (lm) {
+      const cur = getDungeon(id);
+      cur.invested = (cur.invested || 0) + parseFloat(lm[1]);
+      cur.earned = (cur.earned || 0) + parseFloat(lm[2]);
+      upsertDungeon(cur);
+      broadcast('ledger', { id, invested: cur.invested, earned: cur.earned });
+    }
     broadcast('stage', { id, index: i, agentId: stage.agentId, agent: agent.name, status: 'done', output: r.text });
   }
 
@@ -170,7 +180,8 @@ const server = http.createServer(async (req, res) => {
       const dn = {
         id: crypto.randomUUID(), name: b.name || 'New dungeon', goal: b.goal || '',
         guardrails: b.guardrails || { budgetCapUSD: 500, minMarginPct: 30, maxPerItemUSD: 50 },
-        pipeline: b.pipeline || [], runMode: 'paper', status: 'idle', createdAt: new Date().toISOString(),
+        pipeline: b.pipeline || [], runMode: 'paper', status: 'idle',
+        invested: 0, earned: 0, createdAt: new Date().toISOString(),
       };
       upsertDungeon(dn); broadcast('dungeon-new', { dungeon: dn });
       return send(res, 200, dn);

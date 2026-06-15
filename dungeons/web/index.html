@@ -72,6 +72,26 @@
   .feed .ev .t{ color:var(--dim); } .feed .ev .who{ color:var(--neon); }
   .feed .ev .out{ color:var(--txt); white-space:pre-wrap; display:block; margin-top:3px; opacity:.85; }
   .empty{ color:var(--dim); text-align:center; margin-top:30px; font-size:13px; }
+  /* workshop floor — crew at their desks forming the pipeline */
+  .floor{ width:100%; display:flex; align-items:flex-end; gap:2px; padding:8px 4px 4px; overflow-x:auto; }
+  .desk{ flex:0 0 auto; width:96px; display:flex; flex-direction:column; align-items:center; transition:.2s; }
+  .desk.queued{ opacity:.5; }
+  .desk .char svg{ width:90px; height:100px; display:block; }
+  .desk.running .char{ animation:bob .9s ease-in-out infinite; filter:drop-shadow(0 0 7px var(--a)); }
+  @keyframes bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-3px) } }
+  .desk .plate{ font-size:12px; font-weight:600; text-align:center; margin-top:-4px; line-height:1.15; }
+  .desk .plate .num{ color:var(--a); }
+  .desk .plate .role{ font-size:10px; color:var(--dim); font-weight:400; }
+  .desk .dstat{ font-size:10px; margin-top:3px; color:var(--dim); }
+  .desk.running .dstat{ color:var(--neon); } .desk.done .dstat{ color:var(--dim); } .desk.error .dstat{ color:var(--danger); }
+  .belt{ width:26px; height:7px; align-self:center; margin-bottom:54px; border-radius:3px;
+    background:repeating-linear-gradient(90deg,var(--a) 0 6px,transparent 6px 12px); opacity:.55; animation:beltflow .55s linear infinite; }
+  @keyframes beltflow{ to{ background-position:12px 0 } }
+  .ledgerbox{ border:1px solid var(--line); border-radius:8px; padding:6px 11px; margin-bottom:16px; background:var(--panel); }
+  .money .mrow{ display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:13px; }
+  .money .mrow span{ color:var(--dim); } .money .mrow b{ font-size:16px; }
+  .money .mrow.profit{ border-top:1px solid var(--line); margin-top:3px; padding-top:8px; }
+  .money .mrow.profit b{ font-size:19px; }
 </style>
 </head>
 <body>
@@ -89,6 +109,12 @@
     </div>
     <div class="col" id="center"></div>
     <div class="col feed">
+      <div class="h">Money · paper</div>
+      <div class="ledgerbox money">
+        <div class="mrow"><span>Invested</span><b id="m-in">$0</b></div>
+        <div class="mrow"><span>Earned</span><b id="m-out" class="neon">$0</b></div>
+        <div class="mrow profit"><span>Profit</span><b id="m-net">$0</b></div>
+      </div>
       <div class="h">Live feed</div>
       <div id="feed"></div>
     </div>
@@ -103,12 +129,21 @@ async function api(path, method, body){
   return r.json();
 }
 
+function money(n){ const v=Math.round(n||0); return (v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US'); }
+function updateMoney(){
+  const inv=DUNGEONS.reduce((s,d)=>s+(d.invested||0),0), earn=DUNGEONS.reduce((s,d)=>s+(d.earned||0),0);
+  const mi=$('#m-in'),mo=$('#m-out'),mn=$('#m-net');
+  if(mi)mi.textContent=money(inv); if(mo)mo.textContent=money(earn);
+  if(mn){ const net=earn-inv; mn.textContent=money(net); mn.style.color=net>=0?'var(--neon)':'var(--danger)'; }
+  if(current){ const pl=$('#pl'); if(pl){ const n2=(current.earned||0)-(current.invested||0); pl.textContent=money(n2); pl.style.color=n2>=0?'var(--neon)':'var(--danger)'; } }
+}
 async function init(){
   LIB = await api('/library');
   AG = Object.fromEntries(LIB.agents.map(a=>[a.id,a]));
   renderCrew();
   DUNGEONS = await api('/dungeons');
   renderCenter();
+  updateMoney();
   connectSSE();
 }
 
@@ -173,6 +208,7 @@ function renderCenter(){
     </div>`;
   bindTabs();
   renderPipe();
+  updateMoney();
   $('#run').onclick = ()=> api('/dungeons/'+d.id+'/run','POST');
   $('#kill').onclick = ()=> api('/dungeons/'+d.id+'/kill','POST');
   $('#del').onclick = async ()=>{ await api('/dungeons/'+d.id,'DELETE'); DUNGEONS=DUNGEONS.filter(x=>x.id!==d.id); current=null; renderCenter(); };
@@ -182,19 +218,47 @@ function renderCenter(){
   drop.addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('over'); const id=e.dataTransfer.getData('text/plain'); if(id) addStage(id); });
 }
 
+const HATS = {
+  scout:  `<ellipse cx="45" cy="31" rx="15" ry="3.2" fill="#6b4423"/><path d="M37 31 Q45 19 53 31 Z" fill="#8a5a2b"/>`,
+  sage:   `<path d="M45 12 L34 32 Q45 30 56 32 Z" fill="#3a2f7a"/><circle cx="45" cy="23" r="1.8" fill="#ffe066"/>`,
+  magpie: `<ellipse cx="45" cy="28" rx="8" ry="5" fill="#181818"/><circle cx="51" cy="26" r="3.2" fill="#181818"/><path d="M54 26 l4 -1 l-4 2.2 Z" fill="#f5a623"/><ellipse cx="43" cy="29" rx="3.5" ry="2.2" fill="#eef"/>`,
+  quill:  `<path d="M46 31 Q41 14 49 7 Q51 18 49 31 Z" fill="#dfe9ff" stroke="#9fbfff" stroke-width="0.8"/><line x1="47" y1="13" x2="47" y2="29" stroke="#9fbfff" stroke-width="0.6"/>`,
+  pixel:  `<ellipse cx="45" cy="30" rx="13" ry="4.6" fill="#c0392b"/><circle cx="54" cy="25.5" r="2" fill="#c0392b"/>`,
+  herald: `<path d="M32 33 L58 33 L57 27 L51 30 L45 24 L39 30 L33 27 Z" fill="#caa23a"/><circle cx="33" cy="27" r="2" fill="#e8c34a"/><circle cx="45" cy="24" r="2" fill="#e8c34a"/><circle cx="57" cy="27" r="2" fill="#e8c34a"/>`,
+  beacon: `<rect x="43.5" y="18" width="3" height="13" fill="#9aa"/><circle cx="45" cy="16" r="3" fill="#ffe066"/><circle cx="45" cy="16" r="6.5" fill="none" stroke="#ffe066" stroke-opacity="0.4"/>`,
+  closer: `<path d="M33 40 Q34 27 45 27 Q56 27 57 40 Q57 33 45 32 Q33 33 33 40 Z" fill="#222"/><path d="M45 53 l-2.5 5 l2.5 7 l2.5 -7 Z" fill="#c0392b"/>`,
+  ledger: `<rect x="35" y="32" width="20" height="5" rx="2.5" fill="#1e7d34"/><circle cx="41" cy="42" r="3.6" fill="none" stroke="#111" stroke-width="1.2"/><circle cx="49" cy="42" r="3.6" fill="none" stroke="#111" stroke-width="1.2"/><line x1="44.6" y1="42" x2="45.4" y2="42" stroke="#111" stroke-width="1.2"/>`,
+  foreman:`<path d="M33 32 Q45 18 57 32 Z" fill="#f2b50a"/><rect x="31" y="31" width="28" height="3" rx="1.5" fill="#f2b50a"/><rect x="43" y="22" width="4" height="6" rx="1" fill="#d99a00"/>`
+};
+function characterSVG(a){
+  const acc = a.accent||'#2bff88', hat = HATS[a.id]||'';
+  return `<svg viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="45" cy="95" rx="27" ry="4" fill="#000" opacity="0.3"/>
+    <path d="M28 74 Q28 54 45 54 Q62 54 62 74 Z" fill="${acc}"/>
+    <circle cx="45" cy="42" r="12" fill="#f1c79b" stroke="#0006"/>
+    <circle cx="41" cy="42" r="1.6" fill="#222"/><circle cx="49" cy="42" r="1.6" fill="#222"/>
+    <path d="M41 47 Q45 50 49 47" stroke="#222" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    ${hat}
+    <rect x="16" y="68" width="58" height="22" rx="3" fill="#0b1418" stroke="${acc}" stroke-opacity="0.5"/>
+    <rect x="16" y="68" width="58" height="2" fill="${acc}"/>
+    <rect x="21" y="57" width="15" height="11" rx="1" fill="#04181a" stroke="${acc}" stroke-opacity="0.7"/>
+    <rect x="23" y="59" width="11" height="7" fill="${acc}" opacity="0.35"/>
+    <rect x="44" y="65" width="12" height="4" rx="2" fill="${acc}" opacity="0.8"/>
+  </svg>`;
+}
 function renderPipe(){
-  const d = current; const el = $('#pipe');
-  if(!(d.pipeline||[]).length){ el.innerHTML = `<div class="empty">no stages yet — drag agents from the crew, or let Skipper build it</div>`; return; }
-  el.innerHTML = d.pipeline.map((s,i)=>{
-    const a = AG[s.agentId]||{name:s.agentId,icon:'ti-robot',accent:'#2bff88'};
-    return `${i?'<div class="conv"></div>':''}
-      <div class="stage" id="stage-${i}" style="--a:${a.accent}">
-        <i class="ti ${a.icon} ai"></i>
-        <div><div class="nm">${i+1}. ${a.name} <span style="color:var(--dim);font-weight:400">· ${a.role}</span></div>
-        <div class="ac" id="ac-${i}">${s.instruction||''}</div></div>
-        <div class="st" id="st-${i}">queued</div>
+  const d = current, el = $('#pipe');
+  if(!(d.pipeline||[]).length){ el.innerHTML = `<div class="empty">no crew at their desks yet — drag agents from the crew, or let Skipper build it</div>`; return; }
+  el.innerHTML = `<div class="floor">` + d.pipeline.map((s,i)=>{
+    const a = AG[s.agentId]||{name:s.agentId,role:'',accent:'#2bff88'};
+    return `${i?`<div class="belt" style="--a:${a.accent}"></div>`:''}
+      <div class="desk queued" id="stage-${i}" style="--a:${a.accent}" title="${(s.instruction||'').replace(/"/g,'&quot;')}">
+        <div class="char">${characterSVG(a)}</div>
+        <div class="plate"><span class="num">${i+1}.</span> ${a.name}<div class="role">${a.role}</div></div>
+        <div class="dstat" id="st-${i}">queued</div>
+        <div id="ac-${i}" style="display:none"></div>
       </div>`;
-  }).join('');
+  }).join('') + `</div>`;
 }
 
 function bindTabs(){
@@ -235,10 +299,16 @@ function connectSSE(){
     }
     if(m.type==='stage' && current && current.id===m.id){
       const st=$('#st-'+m.index), ac=$('#ac-'+m.index), box=$('#stage-'+m.index);
-      if(st){ st.textContent=m.status; st.className='st '+m.status; }
-      if(box){ box.className='stage '+m.status; }
+      if(st){ st.textContent=m.status; st.className='dstat '+m.status; }
+      if(box){ box.className='desk '+m.status; }
       if(m.activity && ac) ac.textContent=m.activity;
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">${m.agent}</span> · ${m.status}${m.output?`<span class="out">${(m.output||'').slice(0,600)}</span>`:''}${m.activity&&m.status!=='done'?` — ${m.activity}`:''}</div>`);
+    }
+    if(m.type==='ledger'){
+      const d=DUNGEONS.find(x=>x.id===m.id); if(d){ d.invested=m.invested; d.earned=m.earned; }
+      if(current&&current.id===m.id){ current.invested=m.invested; current.earned=m.earned; }
+      updateMoney();
+      feed(`<div class="ev"><span class="t">${t}</span> <span class="who">Ledger</span> · in ${money(m.invested)} · earned ${money(m.earned)}</div>`);
     }
     if(m.type==='dungeon-new'){ if(!DUNGEONS.find(d=>d.id===m.dungeon.id)) DUNGEONS.push(m.dungeon); }
   };
