@@ -88,10 +88,11 @@ Design a dungeon for this. Return ONLY a JSON object, no prose, in exactly this 
 {
   "name": "short dungeon name",
   "goal": "one sentence goal",
+  "trades": 10,
   "guardrails": { "budgetCapUSD": 500, "minMarginPct": 30, "maxPerItemUSD": 50 },
   "pipeline": [ { "agentId": "scout", "instruction": "what this stage should do" } ]
 }
-Pick 3-6 stages from the crew that fit the goal, in execution order.`;
+Pick 3-6 stages from the crew that fit the goal, in execution order. Set "trades" to how many trades/items run per cycle (10 default; up to 20 for high-volume flipping like Etsy).`;
   const r = await claudeAgent(prompt);
   if (!r.ok) return { ok: false, error: r.error, reply: '' };
   const spec = extractJson(r.text);
@@ -114,17 +115,18 @@ Result: invested $${dn.invested || 0}, earned $${dn.earned || 0}, profit $${prof
 Run transcript:
 ${body}
 
-Reflect so the NEXT run makes MORE money, FASTER. Return ONLY JSON:
-{ "summary": "one line on how this run went", "lessons": ["specific reusable lesson — what to do, avoid, or do faster", "..."] }
-3-6 lessons, concrete and tied to what actually made or lost money. No generic advice.`;
+Go through EACH trade individually and learn from it. Reflect so the NEXT run makes MORE money, FASTER. Return ONLY JSON:
+{ "summary": "one line on how this run went", "tradesReviewed": <how many trades you reviewed>, "lessons": ["specific reusable lesson tied to a trade — what to do, avoid, or do faster", "..."] }
+3-6 lessons, concrete and tied to which trades actually made or lost money. No generic advice.`;
   const r = await claudeAgent(prompt);
   const j = extractJson(r.text) || {};
   const fresh = (j.lessons || []).filter(x => typeof x === 'string' && x.trim());
   mem.lessons = [...fresh, ...(mem.lessons || [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12);
+  mem.tradesLearned = (mem.tradesLearned || 0) + (parseInt(j.tradesReviewed) || 0);
   mem.runs = [...(mem.runs || []), { at: new Date().toISOString(), invested: dn.invested || 0, earned: dn.earned || 0, profit, summary: j.summary || '' }].slice(-24);
   dn.memory = mem;
   upsertDungeon(dn);
-  broadcast('learned', { id, lessons: mem.lessons, runs: mem.runs, summary: j.summary || '' });
+  broadcast('learned', { id, lessons: mem.lessons, runs: mem.runs, tradesLearned: mem.tradesLearned, summary: j.summary || '' });
 }
 
 async function runDungeon(id) {
@@ -152,7 +154,7 @@ async function runDungeon(id) {
     const prompt = `${agent.systemPrompt}
 
 You are working inside the "${dn.name}" dungeon. Overall goal: ${dn.goal}
-Guardrails: budget cap $${dn.guardrails?.budgetCapUSD ?? 500}, min margin ${dn.guardrails?.minMarginPct ?? 30}%, max $${dn.guardrails?.maxPerItemUSD ?? 50}/item. PAPER MODE — never spend real money; propose simulated actions only.${lessonsBlock}
+Guardrails: budget cap $${dn.guardrails?.budgetCapUSD ?? 500}, min margin ${dn.guardrails?.minMarginPct ?? 30}%, max $${dn.guardrails?.maxPerItemUSD ?? 50}/item. This dungeon runs a BATCH of up to ${dn.trades || 10} trades per cycle — work the WHOLE batch, not just one or two. PAPER MODE — never spend real money; propose simulated actions only.${lessonsBlock}
 ${prev ? `\nResult from the previous stage:\n${prev}\n` : ''}
 Your task: ${stage.instruction}
 Be concrete and brief.
@@ -215,7 +217,8 @@ const server = http.createServer(async (req, res) => {
         id: crypto.randomUUID(), name: b.name || 'New dungeon', goal: b.goal || '',
         guardrails: b.guardrails || { budgetCapUSD: 500, minMarginPct: 30, maxPerItemUSD: 50 },
         pipeline: b.pipeline || [], runMode: 'paper', status: 'idle',
-        invested: 0, earned: 0, memory: { lessons: [], runs: [] },
+        trades: b.trades || 10,
+        invested: 0, earned: 0, memory: { lessons: [], runs: [], tradesLearned: 0 },
         createdAt: new Date().toISOString(),
       };
       upsertDungeon(dn); broadcast('dungeon-new', { dungeon: dn });
