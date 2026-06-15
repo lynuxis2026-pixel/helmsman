@@ -59,6 +59,12 @@ func Extract(dst string) error {
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return err
 		}
-		return os.WriteFile(target, b, 0o644)
+		// go:embed reports every file as 0444, so the original exec bit is lost.
+		// Give shell scripts the exec bit back; everything else stays 0644.
+		mode := os.FileMode(0o644)
+		if filepath.Ext(p) == ".sh" {
+			mode = 0o755
+		}
+		return os.WriteFile(target, b, mode)
 	})
 }

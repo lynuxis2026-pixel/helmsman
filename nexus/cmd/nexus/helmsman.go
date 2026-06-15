@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -33,7 +34,9 @@ func operatorDir() string {
 func ensureOperator() (string, error) {
 	dir := operatorDir()
 	if _, err := os.Stat(filepath.Join(dir, "scripts", "ecc.js")); err == nil {
-		ensureOperatorDeps(dir)
+		if err := ensureOperatorDeps(dir); err != nil {
+			return "", err
+		}
 		return dir, nil
 	}
 	if !operatorfs.HasOperator() {
@@ -43,29 +46,35 @@ func ensureOperator() (string, error) {
 	if err := operatorfs.Extract(dir); err != nil {
 		return "", fmt.Errorf("failed to extract operator core: %w", err)
 	}
-	ensureOperatorDeps(dir)
+	if err := ensureOperatorDeps(dir); err != nil {
+		return "", err
+	}
 	return dir, nil
 }
 
 // ensureOperatorDeps installs the operator core's Node dependencies on first use.
 // The embedded tree ships source, not node_modules, so the Node tooling (which
-// needs e.g. ajv) would otherwise fail. No-op once node_modules is present.
-func ensureOperatorDeps(dir string) {
+// needs e.g. ajv) would otherwise fail. No-op once node_modules is present; a
+// real npm failure is surfaced so callers don't proceed on a half-install.
+func ensureOperatorDeps(dir string) error {
 	if _, err := os.Stat(filepath.Join(dir, "node_modules")); err == nil {
-		return
+		return nil
 	}
 	if _, err := os.Stat(filepath.Join(dir, "package.json")); err != nil {
-		return
+		return nil // no package.json, nothing to install
 	}
 	npm, err := exec.LookPath("npm")
 	if err != nil {
-		return // npm absent; commands that need deps will report it themselves
+		return nil // npm absent; commands that need deps will report it themselves
 	}
 	color.Yellow("→ installing operator dependencies (one-time)…")
 	c := exec.Command(npm, "install", "--omit=dev", "--no-audit", "--no-fund", "--silent")
 	c.Dir = dir
-	c.Stdout, c.Stderr = os.Stderr, os.Stderr
-	_ = c.Run()
+	c.Stdout, c.Stderr = os.Stdout, os.Stderr
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("operator dependency install failed (npm install in %s): %w", dir, err)
+	}
+	return nil
 }
 
 func mustNode() (string, error) {
@@ -130,24 +139,34 @@ func wireMCP(dir string) error {
 	p := filepath.Join(dir, ".mcp.json")
 	raw, err := os.ReadFile(p)
 	if err != nil {
-		return err
+		return fmt.Errorf("wire-mcp: read %s: %w", p, err)
 	}
 	var doc map[string]interface{}
 	if err := json.Unmarshal(raw, &doc); err != nil {
-		return err
+		return fmt.Errorf("wire-mcp: parse %s: %w", p, err)
 	}
 	servers, _ := doc["mcpServers"].(map[string]interface{})
 	if servers == nil {
 		servers = map[string]interface{}{}
 		doc["mcpServers"] = servers
 	}
-	servers["nexus"] = map[string]interface{}{"command": "helmsman", "args": []string{"mcp"}}
+	want := map[string]interface{}{"command": "helmsman", "args": []string{"mcp"}}
+	if existing, ok := servers["nexus"]; ok {
+		cur, _ := json.Marshal(existing)
+		next, _ := json.Marshal(want)
+		if string(cur) == string(next) {
+			color.HiBlack("  NEXUS MCP server already wired in %s", p)
+			return nil
+		}
+		color.Yellow("  updating existing \"nexus\" MCP entry in %s", p)
+	}
+	servers["nexus"] = want
 	out, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("wire-mcp: encode %s: %w", p, err)
 	}
 	if err := os.WriteFile(p, append(out, '\n'), 0o644); err != nil {
-		return err
+		return fmt.Errorf("wire-mcp: write %s: %w", p, err)
 	}
 	color.Green("✓ Wired NEXUS savings MCP server into %s (server \"nexus\")", p)
 	return nil
@@ -218,21 +237,24 @@ func runMax(cmd *cobra.Command, args []string) error {
 
 // runHelmsmanDoctor runs the NEXUS doctor and then the operator-core doctor.
 func runHelmsmanDoctor(cmd *cobra.Command, args []string) error {
-	_ = runDoctor(cmd, args)
+	nexusErr := runDoctor(cmd, args)
 	color.Cyan("\n🩺 Operator doctor\n")
 	dir, err := ensureOperator()
 	if err != nil {
 		color.Yellow("  skipped: %v", err)
-		return nil
+		return nexusErr
 	}
 	if _, err := mustNode(); err != nil {
 		color.Yellow("  skipped: %v", err)
-		return nil
+		return nexusErr
 	}
+	var opErr error
 	if _, err := os.Stat(filepath.Join(dir, "scripts", "doctor.js")); err == nil {
-		return runNode(dir, "doctor.js")
+		opErr = runNode(dir, "doctor.js")
+	} else {
+		opErr = runNode(dir, "ecc.js", "doctor")
 	}
-	return runNode(dir, "ecc.js", "doctor")
+	return errors.Join(nexusErr, opErr)
 }
 
 func init() {
