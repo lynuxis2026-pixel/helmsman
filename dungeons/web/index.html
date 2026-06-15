@@ -92,6 +92,23 @@
   .money .mrow span{ color:var(--dim); } .money .mrow b{ font-size:16px; }
   .money .mrow.profit{ border-top:1px solid var(--line); margin-top:3px; padding-top:8px; }
   .money .mrow.profit b{ font-size:19px; }
+  /* dungeon = a room: an office of desks, all wired together */
+  .room{ position:relative; width:100%; max-width:580px; margin:0 auto; border:1.5px solid var(--neon); border-radius:12px; overflow:hidden;
+    background:linear-gradient(rgba(43,255,136,.05) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(43,255,136,.05) 1px,transparent 1px) 0 0/28px 28px,#060b0d;
+    box-shadow:0 0 16px rgba(43,255,136,.18),inset 0 0 30px rgba(43,255,136,.05); }
+  .roomlabel{ position:absolute; top:8px; left:12px; font-size:11px; letter-spacing:1px; color:var(--dim); z-index:3; }
+  .wires{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  .wire{ fill:none; stroke:var(--neon); stroke-width:2.5; opacity:.5; stroke-dasharray:7 7; stroke-linejoin:round; stroke-linecap:round; animation:dash 1s linear infinite; filter:drop-shadow(0 0 4px var(--neon)); }
+  @keyframes dash{ to{ stroke-dashoffset:-14 } }
+  .node{ fill:var(--neon); opacity:.7; }
+  .desk2{ position:absolute; transform:translate(-50%,-50%); width:96px; display:flex; flex-direction:column; align-items:center; z-index:2; transition:.2s; }
+  .desk2.queued{ opacity:.55; }
+  .desk2 .char svg{ width:88px; height:98px; display:block; }
+  .desk2.running .char{ animation:bob .9s ease-in-out infinite; filter:drop-shadow(0 0 7px var(--a)); }
+  .desk2 .plate{ font-size:12px; font-weight:600; text-align:center; margin-top:-6px; line-height:1.15; }
+  .desk2 .plate .num{ color:var(--a); } .desk2 .plate .role{ font-size:10px; color:var(--dim); font-weight:400; }
+  .desk2 .dstat{ font-size:10px; margin-top:2px; color:var(--dim); }
+  .desk2.running .dstat{ color:var(--neon); } .desk2.done .dstat{ color:var(--dim); } .desk2.error .dstat{ color:var(--danger); }
 </style>
 </head>
 <body>
@@ -115,6 +132,12 @@
         <div class="mrow"><span>Earned</span><b id="m-out" class="neon">$0</b></div>
         <div class="mrow profit"><span>Profit</span><b id="m-net">$0</b></div>
       </div>
+      <div class="h">Brain · learns each run</div>
+      <div class="ledgerbox money">
+        <div class="mrow"><span>Lessons learned</span><b id="b-count" class="neon">0</b></div>
+        <div id="b-trend" style="min-height:38px;display:flex;align-items:flex-end;gap:3px;margin:6px 0 2px"></div>
+        <div id="b-lessons" style="font-size:12px;color:var(--dim);line-height:1.5"></div>
+      </div>
       <div class="h">Live feed</div>
       <div id="feed"></div>
     </div>
@@ -137,6 +160,15 @@ function updateMoney(){
   if(mn){ const net=earn-inv; mn.textContent=money(net); mn.style.color=net>=0?'var(--neon)':'var(--danger)'; }
   if(current){ const pl=$('#pl'); if(pl){ const n2=(current.earned||0)-(current.invested||0); pl.textContent=money(n2); pl.style.color=n2>=0?'var(--neon)':'var(--danger)'; } }
 }
+function updateBrain(){
+  const cnt=$('#b-count'); if(!cnt) return;
+  const mem=(current&&current.memory)||{lessons:[],runs:[]};
+  cnt.textContent=(mem.lessons||[]).length;
+  const tr=$('#b-trend'), ls=$('#b-lessons');
+  const runs=(mem.runs||[]).slice(-16), max=Math.max(1,...runs.map(r=>Math.abs(r.profit||0)));
+  if(tr) tr.innerHTML = runs.length ? runs.map(r=>{ const h=Math.max(3,Math.round(Math.abs(r.profit||0)/max*34)), up=(r.profit||0)>=0; return `<div title="profit ${money(r.profit||0)}" style="width:9px;height:${h}px;border-radius:2px;background:${up?'var(--neon)':'var(--danger)'};opacity:.85"></div>`; }).join('') : '<span style="font-size:12px;color:var(--dim)">no runs yet — run the dungeon to start learning</span>';
+  if(ls) ls.innerHTML = (mem.lessons||[]).slice(0,3).map(l=>'• '+l).join('<br>');
+}
 async function init(){
   LIB = await api('/library');
   AG = Object.fromEntries(LIB.agents.map(a=>[a.id,a]));
@@ -144,6 +176,7 @@ async function init(){
   DUNGEONS = await api('/dungeons');
   renderCenter();
   updateMoney();
+  updateBrain();
   connectSSE();
 }
 
@@ -209,6 +242,7 @@ function renderCenter(){
   bindTabs();
   renderPipe();
   updateMoney();
+  updateBrain();
   $('#run').onclick = ()=> api('/dungeons/'+d.id+'/run','POST');
   $('#kill').onclick = ()=> api('/dungeons/'+d.id+'/kill','POST');
   $('#del').onclick = async ()=>{ await api('/dungeons/'+d.id,'DELETE'); DUNGEONS=DUNGEONS.filter(x=>x.id!==d.id); current=null; renderCenter(); };
@@ -248,17 +282,25 @@ function characterSVG(a){
 }
 function renderPipe(){
   const d = current, el = $('#pipe');
-  if(!(d.pipeline||[]).length){ el.innerHTML = `<div class="empty">no crew at their desks yet — drag agents from the crew, or let Skipper build it</div>`; return; }
-  el.innerHTML = `<div class="floor">` + d.pipeline.map((s,i)=>{
-    const a = AG[s.agentId]||{name:s.agentId,role:'',accent:'#2bff88'};
-    return `${i?`<div class="belt" style="--a:${a.accent}"></div>`:''}
-      <div class="desk queued" id="stage-${i}" style="--a:${a.accent}" title="${(s.instruction||'').replace(/"/g,'&quot;')}">
+  const stages = d.pipeline||[];
+  if(!stages.length){ el.innerHTML = `<div class="empty">empty room — drag the crew to their desks, or let Skipper build it</div>`; return; }
+  const W=560, COLS=Math.min(3, stages.length), cellW=W/COLS, cellH=152, rows=Math.ceil(stages.length/COLS), H=rows*cellH+18;
+  const pos = stages.map((s,i)=>{ let r=Math.floor(i/COLS), c=i%COLS; if(r%2) c=COLS-1-c; return { x:Math.round(c*cellW+cellW/2), y:Math.round(r*cellH+72) }; });
+  const pts = pos.map(p=>p.x+','+p.y).join(' ');
+  el.innerHTML = `<div class="room" style="height:${H}px">
+    <div class="roomlabel"><i class="ti ti-building"></i> ${d.name} · office</div>
+    <svg class="wires" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <polyline points="${pts}" class="wire"/>
+      ${pos.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" class="node"/>`).join('')}
+    </svg>
+    ${stages.map((s,i)=>{ const a=AG[s.agentId]||{name:s.agentId,role:'',accent:'#2bff88'}; const p=pos[i];
+      return `<div class="desk2 queued" id="stage-${i}" style="left:${p.x}px;top:${p.y}px;--a:${a.accent}" title="${(s.instruction||'').replace(/"/g,'&quot;')}">
         <div class="char">${characterSVG(a)}</div>
         <div class="plate"><span class="num">${i+1}.</span> ${a.name}<div class="role">${a.role}</div></div>
         <div class="dstat" id="st-${i}">queued</div>
         <div id="ac-${i}" style="display:none"></div>
-      </div>`;
-  }).join('') + `</div>`;
+      </div>`; }).join('')}
+  </div>`;
 }
 
 function bindTabs(){
@@ -300,7 +342,7 @@ function connectSSE(){
     if(m.type==='stage' && current && current.id===m.id){
       const st=$('#st-'+m.index), ac=$('#ac-'+m.index), box=$('#stage-'+m.index);
       if(st){ st.textContent=m.status; st.className='dstat '+m.status; }
-      if(box){ box.className='desk '+m.status; }
+      if(box){ box.className='desk2 '+m.status; }
       if(m.activity && ac) ac.textContent=m.activity;
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">${m.agent}</span> · ${m.status}${m.output?`<span class="out">${(m.output||'').slice(0,600)}</span>`:''}${m.activity&&m.status!=='done'?` — ${m.activity}`:''}</div>`);
     }
@@ -309,6 +351,11 @@ function connectSSE(){
       if(current&&current.id===m.id){ current.invested=m.invested; current.earned=m.earned; }
       updateMoney();
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">Ledger</span> · in ${money(m.invested)} · earned ${money(m.earned)}</div>`);
+    }
+    if(m.type==='learned'){
+      const d=DUNGEONS.find(x=>x.id===m.id); if(d){ d.memory={ lessons:m.lessons, runs:m.runs }; }
+      if(current&&current.id===m.id){ current.memory={ lessons:m.lessons, runs:m.runs }; updateBrain(); }
+      feed(`<div class="ev"><span class="t">${t}</span> <span class="who">Mentor</span> · learned ${m.lessons.length} lessons${m.summary?` — ${m.summary}`:''}</div>`);
     }
     if(m.type==='dungeon-new'){ if(!DUNGEONS.find(d=>d.id===m.dungeon.id)) DUNGEONS.push(m.dungeon); }
   };

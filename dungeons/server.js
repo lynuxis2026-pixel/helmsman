@@ -101,6 +101,32 @@ Pick 3-6 stages from the crew that fit the goal, in execution order.`;
 // ── run a dungeon (autonomous, paper-first) ──────────────────────────────
 const running = new Map(); // id -> { killed: bool }
 
+// After a run, the Mentor reflects and saves lessons so the next run earns more, faster.
+async function reflect(id, transcript) {
+  const dn = getDungeon(id);
+  if (!dn) return;
+  const mem = dn.memory || { lessons: [], runs: [] };
+  const profit = (dn.earned || 0) - (dn.invested || 0);
+  const body = transcript.map(s => `## ${s.agent}\n${s.output}`).join('\n\n').slice(0, 8000);
+  const prompt = `You are the Mentor for the "${dn.name}" dungeon (goal: ${dn.goal}). The crew just finished a paper run.
+Result: invested $${dn.invested || 0}, earned $${dn.earned || 0}, profit $${profit}.
+
+Run transcript:
+${body}
+
+Reflect so the NEXT run makes MORE money, FASTER. Return ONLY JSON:
+{ "summary": "one line on how this run went", "lessons": ["specific reusable lesson — what to do, avoid, or do faster", "..."] }
+3-6 lessons, concrete and tied to what actually made or lost money. No generic advice.`;
+  const r = await claudeAgent(prompt);
+  const j = extractJson(r.text) || {};
+  const fresh = (j.lessons || []).filter(x => typeof x === 'string' && x.trim());
+  mem.lessons = [...fresh, ...(mem.lessons || [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12);
+  mem.runs = [...(mem.runs || []), { at: new Date().toISOString(), invested: dn.invested || 0, earned: dn.earned || 0, profit, summary: j.summary || '' }].slice(-24);
+  dn.memory = mem;
+  upsertDungeon(dn);
+  broadcast('learned', { id, lessons: mem.lessons, runs: mem.runs, summary: j.summary || '' });
+}
+
 async function runDungeon(id) {
   let dn = getDungeon(id);
   if (!dn) return;
@@ -111,6 +137,11 @@ async function runDungeon(id) {
   upsertDungeon(dn);
   broadcast('dungeon-status', { id, status: 'running' });
 
+  const mem = dn.memory || { lessons: [], runs: [] };
+  const lessonsBlock = (mem.lessons && mem.lessons.length)
+    ? `\nWhat the crew has LEARNED from past runs — apply these to be more profitable AND faster:\n- ${mem.lessons.join('\n- ')}\n`
+    : '';
+  const transcript = [];
   let prev = '';
   for (let i = 0; i < (dn.pipeline || []).length; i++) {
     if (ctrl.killed) break;
@@ -121,7 +152,7 @@ async function runDungeon(id) {
     const prompt = `${agent.systemPrompt}
 
 You are working inside the "${dn.name}" dungeon. Overall goal: ${dn.goal}
-Guardrails: budget cap $${dn.guardrails?.budgetCapUSD ?? 500}, min margin ${dn.guardrails?.minMarginPct ?? 30}%, max $${dn.guardrails?.maxPerItemUSD ?? 50}/item. PAPER MODE — never spend real money; propose simulated actions only.
+Guardrails: budget cap $${dn.guardrails?.budgetCapUSD ?? 500}, min margin ${dn.guardrails?.minMarginPct ?? 30}%, max $${dn.guardrails?.maxPerItemUSD ?? 50}/item. PAPER MODE — never spend real money; propose simulated actions only.${lessonsBlock}
 ${prev ? `\nResult from the previous stage:\n${prev}\n` : ''}
 Your task: ${stage.instruction}
 Be concrete and brief.
@@ -138,6 +169,7 @@ Then end with a one-line "HANDOFF:" summarising what you pass to the next agent.
       return;
     }
     prev = r.text;
+    transcript.push({ agent: agent.name, output: r.text });
     const lm = r.text.match(/LEDGER:\s*spend\s*=\s*\$?\s*([0-9]+(?:\.[0-9]+)?)\D+revenue\s*=\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/i);
     if (lm) {
       const cur = getDungeon(id);
@@ -148,6 +180,8 @@ Then end with a one-line "HANDOFF:" summarising what you pass to the next agent.
     }
     broadcast('stage', { id, index: i, agentId: stage.agentId, agent: agent.name, status: 'done', output: r.text });
   }
+
+  if (!ctrl.killed) await reflect(id, transcript);
 
   dn = getDungeon(id);
   dn.status = ctrl.killed ? 'killed' : 'idle';
@@ -181,7 +215,8 @@ const server = http.createServer(async (req, res) => {
         id: crypto.randomUUID(), name: b.name || 'New dungeon', goal: b.goal || '',
         guardrails: b.guardrails || { budgetCapUSD: 500, minMarginPct: 30, maxPerItemUSD: 50 },
         pipeline: b.pipeline || [], runMode: 'paper', status: 'idle',
-        invested: 0, earned: 0, createdAt: new Date().toISOString(),
+        invested: 0, earned: 0, memory: { lessons: [], runs: [] },
+        createdAt: new Date().toISOString(),
       };
       upsertDungeon(dn); broadcast('dungeon-new', { dungeon: dn });
       return send(res, 200, dn);
