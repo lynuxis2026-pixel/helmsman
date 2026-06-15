@@ -109,6 +109,25 @@
   .desk2 .plate .num{ color:var(--a); } .desk2 .plate .role{ font-size:10px; color:var(--dim); font-weight:400; }
   .desk2 .dstat{ font-size:10px; margin-top:2px; color:var(--dim); }
   .desk2.running .dstat{ color:var(--neon); } .desk2.done .dstat{ color:var(--dim); } .desk2.error .dstat{ color:var(--danger); }
+  /* home overview: the brain in the centre, dungeons orbiting it */
+  .brainmap{ position:relative; width:100%; height:400px; margin-top:6px; }
+  .bmwires{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  .bmwire{ stroke:var(--neon); stroke-width:1.6; opacity:.4; stroke-dasharray:5 6; animation:dash 1.2s linear infinite; }
+  .brainc{ position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; z-index:3; cursor:pointer; animation:pulse 2.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ filter:drop-shadow(0 0 4px rgba(43,255,136,.3)) } 50%{ filter:drop-shadow(0 0 16px rgba(43,255,136,.65)) } }
+  .brain{ width:158px; height:136px; display:block; }
+  .brain .bfill{ fill:rgba(43,255,136,.07); stroke:var(--neon); stroke-width:2.4; stroke-linejoin:round; }
+  .brain .bline{ fill:none; stroke:var(--neon); stroke-width:1.5; opacity:.75; stroke-linecap:round; }
+  .brainlabel{ font-size:12px; color:var(--neon); margin-top:3px; letter-spacing:1px; text-shadow:0 0 8px rgba(43,255,136,.6); }
+  .brainsub{ font-size:10px; color:var(--dim); }
+  .dnode{ position:absolute; transform:translate(-50%,-50%); z-index:2; width:124px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:8px 10px; cursor:pointer; transition:.15s; }
+  .dnode:hover{ border-color:var(--neon); box-shadow:0 0 10px rgba(43,255,136,.25); }
+  .dnode .dn{ font-weight:600; font-size:13px; }
+  .dnode .dm{ font-size:11px; color:var(--dim); margin-top:2px; }
+  .dnode .dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dim); margin-right:5px; vertical-align:middle; }
+  .dnode.running .dot{ background:var(--neon); box-shadow:0 0 6px var(--neon); animation:pulse 1s ease-in-out infinite; }
+  .briefbar{ display:flex; gap:8px; margin-top:8px; }
+  .briefbar input{ flex:1; }
 </style>
 </head>
 <body>
@@ -178,6 +197,7 @@ async function init(){
   updateMoney();
   updateBrain();
   connectSSE();
+  window.addEventListener('resize', ()=>{ if(!current) layoutBrainMap(); });
 }
 
 function renderCrew(){
@@ -199,20 +219,59 @@ function tabsHtml(){
   </div>`;
 }
 
+function brainSVG(){ return `<svg viewBox="0 0 200 172" class="brain" role="img" aria-label="brain">
+  <path class="bfill" d="M100 14 C82 6 60 12 56 32 C38 28 26 46 36 60 C20 66 20 88 38 94 C28 110 42 130 64 124 C68 138 90 142 100 130 C110 142 132 138 136 124 C158 130 172 110 162 94 C180 88 180 66 164 60 C174 46 162 28 144 32 C140 12 118 6 100 14 Z"/>
+  <path class="bline" d="M100 16 C97 50 103 60 100 78 C97 96 103 110 100 130"/>
+  <path class="bline" d="M70 36 C82 42 74 54 82 60 C90 66 80 78 88 86"/>
+  <path class="bline" d="M130 36 C118 42 126 54 118 60 C110 66 120 78 112 86"/>
+  <path class="bline" d="M52 70 C64 70 66 80 60 88"/>
+  <path class="bline" d="M148 70 C136 70 134 80 140 88"/>
+  <path class="bline" d="M74 100 C84 110 96 106 100 100"/>
+  <path class="bline" d="M126 100 C116 110 104 106 100 100"/>
+  <path class="bfill" d="M92 130 C92 146 108 146 108 130 C108 138 102 150 100 158 C98 150 92 138 92 130 Z"/>
+</svg>`; }
+function layoutBrainMap(){
+  const map = $('#brainmap'); if(!map) return;
+  const w = map.clientWidth||440, h = map.clientHeight||400, cx = w/2, cy = h/2;
+  const R = Math.max(118, Math.min(w,h)/2 - 78), n = DUNGEONS.length;
+  const bc = $('#brainc'); if(bc){ bc.style.left = cx+'px'; bc.style.top = cy+'px'; }
+  const sv = $('#bmwires'); if(sv) sv.setAttribute('viewBox','0 0 '+w+' '+h);
+  let lines = '', nodes = '';
+  DUNGEONS.forEach((d,i)=>{
+    const ang = -Math.PI/2 + i/Math.max(1,n)*2*Math.PI;
+    const x = Math.round(cx + R*Math.cos(ang)), y = Math.round(cy + R*Math.sin(ang));
+    const profit = (d.earned||0) - (d.invested||0);
+    lines += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" class="bmwire"/>`;
+    nodes += `<div class="dnode ${d.status==='running'?'running':''}" data-id="${d.id}" style="left:${x}px;top:${y}px">
+      <div class="dn"><span class="dot"></span>${d.name}</div>
+      <div class="dm">${profit>=0?'+':''}${money(profit)} · ${(d.pipeline||[]).length} agents</div></div>`;
+  });
+  if(sv) sv.innerHTML = lines;
+  map.querySelectorAll('.dnode').forEach(e=>e.remove());
+  map.insertAdjacentHTML('beforeend', nodes);
+  map.querySelectorAll('.dnode').forEach(el=> el.onclick=()=>{ current = DUNGEONS.find(d=>d.id===el.dataset.id); renderCenter(); });
+}
 function renderCenter(){
   const c = $('#center');
   if(!current){
     c.innerHTML = tabsHtml() + `
-      <div class="core">
-        <div class="av neon"><i class="ti ti-anchor"></i></div>
-        <h1>Brief <span class="neon">${LIB.commandCore.name||'Skipper'}</span></h1>
-        <p>${LIB.commandCore.tagline||'Describe your idea; the crew builds it.'}</p>
-        <textarea id="vision" rows="3" placeholder="e.g. autonomously flip vintage items on Etsy — or do the marketing & outreach for my coaching program"></textarea>
-        <div style="margin-top:12px"><button id="brief"><i class="ti ti-bolt"></i> Brief Skipper</button></div>
-        <div id="thinking" class="empty" style="display:none">Skipper is briefing the crew…</div>
-      </div>`;
+      <div class="brainmap" id="brainmap">
+        <svg class="bmwires" id="bmwires"></svg>
+        <div class="brainc" id="brainc" title="${LIB.commandCore.name||'Skipper'} — the brain">
+          ${brainSVG()}
+          <div class="brainlabel">${LIB.commandCore.name||'Skipper'}</div>
+          <div class="brainsub">your dungeons orbit the brain</div>
+        </div>
+      </div>
+      <div class="briefbar">
+        <input id="vision" placeholder="Describe a new money-making dungeon…" />
+        <button id="brief"><i class="ti ti-bolt"></i> Brief Skipper</button>
+      </div>
+      <div id="thinking" class="empty" style="display:none;text-align:center;margin-top:8px">Skipper is briefing the crew…</div>`;
     bindTabs();
+    layoutBrainMap();
     $('#brief').onclick = briefSkipper;
+    $('#brainc').onclick = ()=>{ const v=$('#vision'); if(v) v.focus(); };
     return;
   }
   const d = current, g = d.guardrails||{};
@@ -338,6 +397,8 @@ function connectSSE(){
       if(current && current.id===m.id){ current.status=m.status; const ds=$('#dstatus'); if(ds){ds.textContent=m.status; ds.className='pill '+(m.status==='running'?'run':'');}
         const run=$('#run'),kill=$('#kill'); if(run)run.disabled=(m.status==='running'); if(kill)kill.disabled=(m.status!=='running'); }
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">${(DUNGEONS.find(d=>d.id===m.id)||{}).name||'dungeon'}</span> → ${m.status}</div>`);
+      const dd=DUNGEONS.find(d=>d.id===m.id); if(dd) dd.status=m.status;
+      if(!current) layoutBrainMap();
     }
     if(m.type==='stage' && current && current.id===m.id){
       const st=$('#st-'+m.index), ac=$('#ac-'+m.index), box=$('#stage-'+m.index);
@@ -350,6 +411,7 @@ function connectSSE(){
       const d=DUNGEONS.find(x=>x.id===m.id); if(d){ d.invested=m.invested; d.earned=m.earned; }
       if(current&&current.id===m.id){ current.invested=m.invested; current.earned=m.earned; }
       updateMoney();
+      if(!current) layoutBrainMap();
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">Ledger</span> · in ${money(m.invested)} · earned ${money(m.earned)}</div>`);
     }
     if(m.type==='learned'){
@@ -357,7 +419,7 @@ function connectSSE(){
       if(current&&current.id===m.id){ current.memory={ lessons:m.lessons, runs:m.runs }; updateBrain(); }
       feed(`<div class="ev"><span class="t">${t}</span> <span class="who">Mentor</span> · learned ${m.lessons.length} lessons${m.summary?` — ${m.summary}`:''}</div>`);
     }
-    if(m.type==='dungeon-new'){ if(!DUNGEONS.find(d=>d.id===m.dungeon.id)) DUNGEONS.push(m.dungeon); }
+    if(m.type==='dungeon-new'){ if(!DUNGEONS.find(d=>d.id===m.dungeon.id)) DUNGEONS.push(m.dungeon); if(!current) layoutBrainMap(); }
   };
 }
 init();
