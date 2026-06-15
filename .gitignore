@@ -27,6 +27,9 @@ nexus/internal/operatorfs/data/*
 # Release artifacts (cross-compiled binaries from integration/build-release.js)
 /dist/
 
+# Dungeons runtime state
+dungeons/data/
+
 # NEXUS local state (SQLite DB, logs)
 *.db
 *.db-shm

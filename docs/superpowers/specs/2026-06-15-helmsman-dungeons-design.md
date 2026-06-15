@@ -18,6 +18,15 @@ It is generic: not Etsy-only. Etsy reselling is the first starter template; the
 same engine runs dropshipping, content/affiliate, freelance-services, arbitrage,
 print-on-demand, or any other strategy expressed as a pipeline.
 
+**Two product principles (added):**
+- **Helmsman *is* the dashboard.** Opening Helmsman opens this dungeon dashboard —
+  it is the primary UI where the user creates and runs dungeons. The dungeon
+  dashboard is Helmsman's front door, not a side feature.
+- **NEXUS runs embedded in the background, zero-config, for ~free.** Helmsman
+  auto-starts NEXUS and routes every agent call to free/local providers (Groq free
+  tier, Ollama) or the user's Max plan, so running dungeons costs ~€0 beyond what
+  the user already has. NEXUS is invisible infrastructure — never configured by hand.
+
 ## 2. Goals / non-goals
 
 **Goals**
@@ -158,9 +167,10 @@ paper mode.
 
 ## 11. Resolved defaults (refine details during planning)
 
-- **Stage agents run on the user's configured Helmsman LLM path** — the **Max plan**
-  when set up (the common case here, consistent with `helmsman max`), otherwise
-  NEXUS provider routing. So dungeon agents need no separate API keys for Max users.
+- **Stage agents run for ~free via an embedded, background NEXUS.** Helmsman
+  auto-starts NEXUS (zero-config) and routes every agent call to free/local providers
+  (Groq free tier, Ollama) or the user's Max plan — so dungeons run at ~€0 marginal
+  cost and need no hand-configured API keys. NEXUS is invisible to the user.
 - **MVP paper ledger uses deterministic mock market data** (no external feed), so the
   whole loop runs offline and reproducibly. Real data feeds arrive with live mode.
 - **The engine launches as `helmsman dungeons`** — a new subcommand that starts the

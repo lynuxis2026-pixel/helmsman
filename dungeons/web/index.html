@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Helmsman Dungeons</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.7.0/tabler-icons.min.css" />
+<style>
+  :root{ --bg:#04070a; --panel:#0a1014; --line:#123; --neon:#2bff88; --neon2:#22d3ee; --dim:#5b7a6a; --txt:#cdebd9; --danger:#ff5a5a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--txt);
+    font-family:'Cascadia Code',ui-monospace,Consolas,monospace; font-size:14px;
+    background-image:linear-gradient(rgba(43,255,136,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(43,255,136,.04) 1px,transparent 1px);
+    background-size:34px 34px; }
+  .neon{ color:var(--neon); text-shadow:0 0 8px rgba(43,255,136,.6); }
+  .frame{ margin:10px; border:1.5px solid var(--neon); border-radius:10px; box-shadow:0 0 14px rgba(43,255,136,.25),inset 0 0 24px rgba(43,255,136,.05);
+    height:calc(100vh - 20px); display:flex; flex-direction:column; overflow:hidden; }
+  header{ display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid rgba(43,255,136,.25); }
+  header .logo{ font-weight:700; letter-spacing:2px; }
+  header .sub{ color:var(--dim); font-size:12px; }
+  header .grow{ flex:1; }
+  .cols{ flex:1; display:grid; grid-template-columns:230px 1fr 300px; min-height:0; }
+  .col{ overflow:auto; padding:12px; }
+  .col.crew{ border-right:1px solid rgba(43,255,136,.18); }
+  .col.feed{ border-left:1px solid rgba(43,255,136,.18); background:#060a0c; }
+  .h{ font-size:11px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin:4px 0 10px; }
+  .agent{ display:flex; align-items:center; gap:9px; padding:8px 9px; margin-bottom:7px; border:1px solid var(--line); border-left:3px solid var(--a,#2bff88);
+    border-radius:7px; background:var(--panel); cursor:grab; transition:.12s; }
+  .agent:hover{ border-color:var(--neon); box-shadow:0 0 10px rgba(43,255,136,.2); transform:translateX(2px); }
+  .agent i{ font-size:18px; color:var(--a,#2bff88); width:20px; text-align:center; }
+  .agent .nm{ font-weight:600; font-size:13px; }
+  .agent .rl{ font-size:11px; color:var(--dim); }
+  .tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .tab{ padding:5px 11px; border:1px solid var(--line); border-radius:14px; cursor:pointer; font-size:12px; color:var(--dim); }
+  .tab.on{ border-color:var(--neon); color:var(--neon); box-shadow:0 0 8px rgba(43,255,136,.25); }
+  .tab.new{ color:var(--neon2); border-color:rgba(34,211,238,.4); }
+  .core{ max-width:560px; margin:6vh auto; text-align:center; }
+  .core .av{ font-size:42px; }
+  .core h1{ font-weight:700; margin:8px 0 4px; }
+  .core p{ color:var(--dim); margin:0 0 18px; }
+  textarea,input{ width:100%; background:#060c0e; color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:11px; font-family:inherit; font-size:14px; }
+  textarea:focus,input:focus{ outline:none; border-color:var(--neon); box-shadow:0 0 8px rgba(43,255,136,.25); }
+  button{ background:transparent; color:var(--neon); border:1px solid var(--neon); border-radius:8px; padding:9px 16px; font-family:inherit; font-weight:600; cursor:pointer; transition:.12s; }
+  button:hover{ background:rgba(43,255,136,.12); box-shadow:0 0 12px rgba(43,255,136,.3); }
+  button.ghost{ color:var(--dim); border-color:var(--line); }
+  button.danger{ color:var(--danger); border-color:rgba(255,90,90,.5); }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  .station{ display:flex; flex-direction:column; align-items:center; }
+  .dhead{ width:100%; display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .dhead .nm{ font-size:18px; font-weight:700; }
+  .pill{ font-size:11px; padding:2px 9px; border-radius:10px; border:1px solid var(--line); color:var(--dim); }
+  .pill.run{ color:var(--neon); border-color:var(--neon); }
+  .pill.paper{ color:var(--neon2); border-color:rgba(34,211,238,.4); }
+  .goal{ width:100%; color:var(--dim); font-size:13px; margin-bottom:14px; }
+  .metrics{ width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .metric{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+  .metric .l{ font-size:11px; color:var(--dim); } .metric .v{ font-size:19px; font-weight:700; }
+  .stage{ width:100%; max-width:560px; display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid var(--line); border-left:3px solid var(--a,#2bff88);
+    border-radius:8px; background:var(--panel); }
+  .stage.running{ border-color:var(--neon); box-shadow:0 0 12px rgba(43,255,136,.3); }
+  .stage.done{ border-left-color:var(--neon); } .stage.error{ border-color:var(--danger); }
+  .stage i.ai{ font-size:20px; color:var(--a,#2bff88); }
+  .stage .nm{ font-weight:600; } .stage .ac{ font-size:12px; color:var(--dim); margin-top:2px; }
+  .stage .st{ margin-left:auto; font-size:11px; }
+  .stage .st.running{ color:var(--neon); } .stage .st.done{ color:var(--dim); } .stage .st.error{ color:var(--danger); }
+  .conv{ width:2px; height:16px; background:repeating-linear-gradient(0deg,var(--neon) 0 5px,transparent 5px 10px); animation:flow .6s linear infinite; opacity:.5; }
+  @keyframes flow{ to{ background-position:0 10px; } }
+  .drop{ width:100%; max-width:560px; margin-top:6px; padding:14px; text-align:center; color:var(--dim); border:1px dashed var(--line); border-radius:8px; font-size:12px; }
+  .drop.over{ border-color:var(--neon); color:var(--neon); box-shadow:0 0 10px rgba(43,255,136,.25); }
+  .runbar{ width:100%; max-width:560px; display:flex; gap:8px; margin:16px 0; }
+  .feed .ev{ font-size:12px; line-height:1.6; padding:5px 0; border-bottom:1px solid rgba(43,255,136,.07); }
+  .feed .ev .t{ color:var(--dim); } .feed .ev .who{ color:var(--neon); }
+  .feed .ev .out{ color:var(--txt); white-space:pre-wrap; display:block; margin-top:3px; opacity:.85; }
+  .empty{ color:var(--dim); text-align:center; margin-top:30px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <i class="ti ti-anchor neon" style="font-size:22px"></i>
+    <div><div class="logo neon">HELMSMAN <span style="color:var(--neon2)">DUNGEONS</span></div></div>
+    <div class="grow"></div>
+    <div class="sub" id="status">agents think on your Max plan · paper-first</div>
+  </header>
+  <div class="cols">
+    <div class="col crew">
+      <div class="h">The crew · drag into a dungeon</div>
+      <div id="crew"></div>
+    </div>
+    <div class="col" id="center"></div>
+    <div class="col feed">
+      <div class="h">Live feed</div>
+      <div id="feed"></div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+let LIB = { agents: [], commandCore: {} }, DUNGEONS = [], current = null, AG = {};
+
+async function api(path, method, body){
+  const r = await fetch('/api'+path, { method: method||'GET', headers:{'Content-Type':'application/json'}, body: body?JSON.stringify(body):undefined });
+  return r.json();
+}
+
+async function init(){
+  LIB = await api('/library');
+  AG = Object.fromEntries(LIB.agents.map(a=>[a.id,a]));
+  renderCrew();
+  DUNGEONS = await api('/dungeons');
+  renderCenter();
+  connectSSE();
+}
+
+function renderCrew(){
+  $('#crew').innerHTML = LIB.agents.map(a=>`
+    <div class="agent" draggable="true" data-id="${a.id}" style="--a:${a.accent}" title="${a.tagline}">
+      <i class="ti ${a.icon}"></i>
+      <div><div class="nm">${a.name}</div><div class="rl">${a.role}</div></div>
+    </div>`).join('');
+  document.querySelectorAll('.agent').forEach(el=>{
+    el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', el.dataset.id));
+    el.addEventListener('click', ()=>{ if(current) addStage(el.dataset.id); });
+  });
+}
+
+function tabsHtml(){
+  return `<div class="tabs">
+    ${DUNGEONS.map(d=>`<div class="tab ${current&&current.id===d.id?'on':''}" data-id="${d.id}">${d.name}</div>`).join('')}
+    <div class="tab new" id="newtab"><i class="ti ti-plus"></i> new dungeon</div>
+  </div>`;
+}
+
+function renderCenter(){
+  const c = $('#center');
+  if(!current){
+    c.innerHTML = tabsHtml() + `
+      <div class="core">
+        <div class="av neon"><i class="ti ti-anchor"></i></div>
+        <h1>Brief <span class="neon">${LIB.commandCore.name||'Skipper'}</span></h1>
+        <p>${LIB.commandCore.tagline||'Describe your idea; the crew builds it.'}</p>
+        <textarea id="vision" rows="3" placeholder="e.g. autonomously flip vintage items on Etsy — or do the marketing & outreach for my coaching program"></textarea>
+        <div style="margin-top:12px"><button id="brief"><i class="ti ti-bolt"></i> Brief Skipper</button></div>
+        <div id="thinking" class="empty" style="display:none">Skipper is briefing the crew…</div>
+      </div>`;
+    bindTabs();
+    $('#brief').onclick = briefSkipper;
+    return;
+  }
+  const d = current, g = d.guardrails||{};
+  c.innerHTML = tabsHtml() + `
+    <div class="station">
+      <div class="dhead">
+        <span class="nm neon">${d.name}</span>
+        <span class="pill ${d.status==='running'?'run':''}" id="dstatus">${d.status}</span>
+        <span class="pill paper">paper</span>
+        <div style="flex:1"></div>
+        <button class="ghost" id="del" title="delete"><i class="ti ti-trash"></i></button>
+      </div>
+      <div class="goal">${d.goal||''}</div>
+      <div class="metrics">
+        <div class="metric"><div class="l">paper p&l</div><div class="v neon" id="pl">—</div></div>
+        <div class="metric"><div class="l">budget cap</div><div class="v">$${g.budgetCapUSD??500}</div></div>
+        <div class="metric"><div class="l">min margin</div><div class="v">${g.minMarginPct??30}%</div></div>
+        <div class="metric"><div class="l">stages</div><div class="v">${(d.pipeline||[]).length}</div></div>
+      </div>
+      <div id="pipe" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+      <div class="drop" id="drop">drop a crew agent here to add a stage</div>
+      <div class="runbar">
+        <button id="run" ${d.status==='running'?'disabled':''}><i class="ti ti-player-play"></i> Run dungeon</button>
+        <button class="danger" id="kill" ${d.status==='running'?'':'disabled'}><i class="ti ti-player-stop"></i> Kill</button>
+      </div>
+    </div>`;
+  bindTabs();
+  renderPipe();
+  $('#run').onclick = ()=> api('/dungeons/'+d.id+'/run','POST');
+  $('#kill').onclick = ()=> api('/dungeons/'+d.id+'/kill','POST');
+  $('#del').onclick = async ()=>{ await api('/dungeons/'+d.id,'DELETE'); DUNGEONS=DUNGEONS.filter(x=>x.id!==d.id); current=null; renderCenter(); };
+  const drop = $('#drop');
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('over'));
+  drop.addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('over'); const id=e.dataTransfer.getData('text/plain'); if(id) addStage(id); });
+}
+
+function renderPipe(){
+  const d = current; const el = $('#pipe');
+  if(!(d.pipeline||[]).length){ el.innerHTML = `<div class="empty">no stages yet — drag agents from the crew, or let Skipper build it</div>`; return; }
+  el.innerHTML = d.pipeline.map((s,i)=>{
+    const a = AG[s.agentId]||{name:s.agentId,icon:'ti-robot',accent:'#2bff88'};
+    return `${i?'<div class="conv"></div>':''}
+      <div class="stage" id="stage-${i}" style="--a:${a.accent}">
+        <i class="ti ${a.icon} ai"></i>
+        <div><div class="nm">${i+1}. ${a.name} <span style="color:var(--dim);font-weight:400">· ${a.role}</span></div>
+        <div class="ac" id="ac-${i}">${s.instruction||''}</div></div>
+        <div class="st" id="st-${i}">queued</div>
+      </div>`;
+  }).join('');
+}
+
+function bindTabs(){
+  document.querySelectorAll('.tab[data-id]').forEach(t=> t.onclick=()=>{ current=DUNGEONS.find(d=>d.id===t.dataset.id); renderCenter(); });
+  const nt = $('#newtab'); if(nt) nt.onclick=()=>{ current=null; renderCenter(); };
+}
+
+async function briefSkipper(){
+  const v = $('#vision').value.trim(); if(!v) return;
+  $('#brief').disabled = true; $('#thinking').style.display='block';
+  const r = await api('/skipper','POST',{ instruction:v });
+  if(r && r.spec){
+    const dn = await api('/dungeons','POST', r.spec);
+    DUNGEONS.push(dn); current = dn; renderCenter();
+  } else {
+    $('#thinking').textContent = (r&&r.error) ? ('Skipper could not plan: '+r.error) : 'Skipper returned no plan — try rephrasing.';
+    $('#brief').disabled = false;
+  }
+}
+
+async function addStage(agentId){
+  const a = AG[agentId]; if(!a||!current) return;
+  current.pipeline = current.pipeline||[];
+  current.pipeline.push({ agentId, instruction: a.tagline });
+  await api('/dungeons/'+current.id,'PUT',{ pipeline: current.pipeline });
+  renderCenter();
+}
+
+function feed(html){ const f=$('#feed'); f.insertAdjacentHTML('afterbegin', html); }
+function connectSSE(){
+  const es = new EventSource('/api/events');
+  es.onmessage = ev=>{
+    const m = JSON.parse(ev.data); const t = (m.at||'').slice(11,19);
+    if(m.type==='dungeon-status'){
+      if(current && current.id===m.id){ current.status=m.status; const ds=$('#dstatus'); if(ds){ds.textContent=m.status; ds.className='pill '+(m.status==='running'?'run':'');}
+        const run=$('#run'),kill=$('#kill'); if(run)run.disabled=(m.status==='running'); if(kill)kill.disabled=(m.status!=='running'); }
+      feed(`<div class="ev"><span class="t">${t}</span> <span class="who">${(DUNGEONS.find(d=>d.id===m.id)||{}).name||'dungeon'}</span> → ${m.status}</div>`);
+    }
+    if(m.type==='stage' && current && current.id===m.id){
+      const st=$('#st-'+m.index), ac=$('#ac-'+m.index), box=$('#stage-'+m.index);
+      if(st){ st.textContent=m.status; st.className='st '+m.status; }
+      if(box){ box.className='stage '+m.status; }
+      if(m.activity && ac) ac.textContent=m.activity;
+      feed(`<div class="ev"><span class="t">${t}</span> <span class="who">${m.agent}</span> · ${m.status}${m.output?`<span class="out">${(m.output||'').slice(0,600)}</span>`:''}${m.activity&&m.status!=='done'?` — ${m.activity}`:''}</div>`);
+    }
+    if(m.type==='dungeon-new'){ if(!DUNGEONS.find(d=>d.id===m.dungeon.id)) DUNGEONS.push(m.dungeon); }
+  };
+}
+init();
+</script>
+</body>
+</html>
