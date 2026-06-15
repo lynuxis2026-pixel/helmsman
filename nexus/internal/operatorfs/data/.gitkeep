@@ -1,3 +1,1 @@
-# Placeholder so `go:embed all:data` compiles on a fresh checkout.
-# The real operator core is copied in here at build time by
-# integration/build-helmsman.js, embedded, then cleaned away again.
+# placeholder; operator core is staged here at build time

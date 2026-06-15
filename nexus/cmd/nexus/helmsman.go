@@ -33,6 +33,7 @@ func operatorDir() string {
 func ensureOperator() (string, error) {
 	dir := operatorDir()
 	if _, err := os.Stat(filepath.Join(dir, "scripts", "ecc.js")); err == nil {
+		ensureOperatorDeps(dir)
 		return dir, nil
 	}
 	if !operatorfs.HasOperator() {
@@ -42,7 +43,29 @@ func ensureOperator() (string, error) {
 	if err := operatorfs.Extract(dir); err != nil {
 		return "", fmt.Errorf("failed to extract operator core: %w", err)
 	}
+	ensureOperatorDeps(dir)
 	return dir, nil
+}
+
+// ensureOperatorDeps installs the operator core's Node dependencies on first use.
+// The embedded tree ships source, not node_modules, so the Node tooling (which
+// needs e.g. ajv) would otherwise fail. No-op once node_modules is present.
+func ensureOperatorDeps(dir string) {
+	if _, err := os.Stat(filepath.Join(dir, "node_modules")); err == nil {
+		return
+	}
+	if _, err := os.Stat(filepath.Join(dir, "package.json")); err != nil {
+		return
+	}
+	npm, err := exec.LookPath("npm")
+	if err != nil {
+		return // npm absent; commands that need deps will report it themselves
+	}
+	color.Yellow("→ installing operator dependencies (one-time)…")
+	c := exec.Command(npm, "install", "--omit=dev", "--no-audit", "--no-fund", "--silent")
+	c.Dir = dir
+	c.Stdout, c.Stderr = os.Stderr, os.Stderr
+	_ = c.Run()
 }
 
 func mustNode() (string, error) {
