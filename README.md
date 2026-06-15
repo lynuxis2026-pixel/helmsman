@@ -106,6 +106,36 @@ npm link          # then just:  helmsman code
 
 ---
 
+## Use it with a Claude Max plan
+
+Prefer your **Claude Max/Pro subscription** over pay-per-token? Run Claude Code on
+your subscription and use Helmsman's **operator core** to orchestrate from there.
+NEXUS cost-routing is **off** in this mode — a subscription only covers Anthropic
+models, so its calls can't be routed to cheaper providers.
+
+```bash
+helmsman operator install     # install the operator skills/agents into ~/.claude
+claude                        # then run /login  → choose your Max/Pro subscription
+helmsman max                  # launch Claude Code on the subscription, operator core loaded
+```
+
+`helmsman max` forces subscription auth by clearing `ANTHROPIC_API_KEY` and
+`ANTHROPIC_BASE_URL` for the launched Claude Code — so it uses your Max login,
+not an API key or the proxy.
+
+Orchestrate many agents from there with the operator control-plane:
+
+```bash
+helmsman operator control-pane   # ecc2 control plane: many Claude sessions,
+                                 # start / stop / resume, worktrees, risk view
+```
+
+> **Max vs NEXUS is either/or per session.** Max = subscription, Anthropic-only,
+> flat cost (`helmsman max`). NEXUS = API key, routed to the cheapest capable
+> provider (`helmsman code`). Pick per workflow.
+
+---
+
 ## The `helmsman` bridge
 
 One entry point spanning both projects. Run `helmsman help` for the full list.

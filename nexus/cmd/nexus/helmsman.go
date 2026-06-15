@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -148,6 +149,50 @@ var envCmd = &cobra.Command{
 	},
 }
 
+// maxCmd runs Claude Code on the user's Max/Pro subscription (no API key, no
+// NEXUS proxy) with Helmsman's operator core available for orchestration.
+//
+// A Max/Pro subscription authenticates via OAuth and only covers Anthropic
+// models — so NEXUS cost-routing does not apply here. This command forces
+// subscription auth by stripping ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL, then
+// launches Claude Code; the operator core (installed into ~/.claude) supplies
+// the skills, agents and control-plane you orchestrate from.
+var maxCmd = &cobra.Command{
+	Use:                "max [-- claude args...]",
+	Short:              "Run Claude Code on your Max plan + operator core (NEXUS routing OFF)",
+	DisableFlagParsing: true,
+	RunE:               runMax,
+}
+
+func runMax(cmd *cobra.Command, args []string) error {
+	claude, err := exec.LookPath("claude")
+	if err != nil {
+		return fmt.Errorf("`claude` (Claude Code) not found on PATH — install it:\n  npm i -g @anthropic-ai/claude-code")
+	}
+
+	// Force subscription auth: drop the API key + proxy base URL so Claude Code
+	// uses your Max/Pro login, not an API key or the NEXUS proxy.
+	var env []string
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "ANTHROPIC_BASE_URL=") || strings.HasPrefix(e, "ANTHROPIC_API_KEY=") {
+			continue
+		}
+		env = append(env, e)
+	}
+
+	color.Cyan("Helmsman — Max mode")
+	color.White("  Claude Code will use your Max/Pro subscription. NEXUS routing is OFF.")
+	color.HiBlack("  - Not logged in?            run `claude`, then `/login` -> choose your subscription")
+	color.HiBlack("  - Install operator skills:  helmsman operator install        (into ~/.claude)")
+	color.HiBlack("  - Orchestrate many agents:  helmsman operator control-pane    (the ecc2 control plane)")
+	fmt.Println()
+
+	c := exec.Command(claude, args...)
+	c.Env = env
+	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
+	return c.Run()
+}
+
 // runHelmsmanDoctor runs the NEXUS doctor and then the operator-core doctor.
 func runHelmsmanDoctor(cmd *cobra.Command, args []string) error {
 	_ = runDoctor(cmd, args)
@@ -172,4 +217,5 @@ func init() {
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(wireMcpCmd)
 	rootCmd.AddCommand(envCmd)
+	rootCmd.AddCommand(maxCmd)
 }
